@@ -16,6 +16,8 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   Débutant à Pro qui se gagnent par la discipline et non par les gains.
 - **Statistiques de fin de partie** : rendement, Sharpe, drawdown, taux de réussite, gain et perte moyens,
   comparaison avec l'acheter-conserver et avec les indices S&P 500 et S&P/TSX.
+- **Tutoriel** : un mini-parcours de 3 minutes où le joueur ouvre, suit et ferme un premier trade sur la vraie
+  interface (stop, taille de position à 1 % du compte, journal, portefeuille, résultat en R). Rien n'est sauvegardé ni compté.
 - **Formation** : 9 leçons avec quiz et un coach à règles après chaque transaction.
 - **Défis** : un code de défi (ex. `ABCD-2345-A0S1`) redonne exactement la même partie.
 - **Mode Live** : un compte qui dure, sur les cours réels les plus récents intégrés au site.
@@ -32,7 +34,7 @@ Le jeu existe aussi en page privée sur claude.ai. Cette version publique n'a pa
 ## Développement
 
 ```bash
-npm test            # 55 groupes de tests du moteur, du coach et du classement
+npm test            # 56 groupes de tests : moteur, coach, classement, tutoriel
 npm run build       # construit le site statique dans dist/
 npm run serve       # serveur local sur http://localhost:8765
 ```

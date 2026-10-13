@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import '../trading/js/engine.js';
 import '../trading/js/coach.js';
 import '../trading/js/board.js';
+import '../trading/js/tutorial.js';
 const TA = globalThis.TA;
 const read = (f) => JSON.parse(fs.readFileSync(`trading/data/${f}.json`));
 const index = read('index'), bench = read('bench');
@@ -905,6 +906,66 @@ function synth(bars) {
   const res = TA.applyResult(prof, { code: 'LIVE-0001', level: 1, ev: { passed: true }, ret: 0.01, dd: -0.01, trades: 2, live: true });
   assert(!res.counted && /Live/.test(res.why) && prof.progress === 0);
   ok('compte Live clôturé : ne compte pas pour le niveau');
+}
+
+// 12. Tutoriel : la partie guidée suit le script sans accroc et les étapes réagissent à ce que fait le joueur
+{
+  const T = TA.TUTORIAL, J = { reason: 'trend', emotion: 'calm', note: '' };
+  assert(T && T.steps.length >= 8 && T.steps.every((s) => s.id && s.title && typeof s.text === 'function'));
+  assert.equal(new Set(T.steps.map((s) => s.id)).size, T.steps.length);
+  const g = TA.buildGame(read(T.plan.assetId), T.plan, 'swing', T.length);
+  const st = TA.newState(g, T.rules, T.level, 1);
+  assert(g.endIdx - g.startIdx === T.length && Math.abs(g.c[g.startIdx] - 100) < 1e-9);
+  const ctx = (o = {}) => {
+    const m = TA.metrics(g, st), ts = st.trades;
+    return { last: g.c[st.idx], equity: m.equity, sl: null, qty: null, sizeQty: 0, risk: 1, reason: '', emotion: '', side: 'buy', type: 'market',
+      hasPos: !!st.pos, bars: st.idx - g.startIdx, lastTrade: ts.length ? ts[ts.length - 1] : null, money: TA.fmt.money, smoney: TA.fmt.smoney, num: TA.fmt.num, ...o };
+  };
+  const by = (id) => T.steps.find((s) => s.id === id);
+  // chaque étape produit un texte propre, dans tous les états
+  for (const s of T.steps) for (const c of [ctx(), ctx({ sl: 96, qty: 250, sizeQty: 250, reason: 'trend', emotion: 'calm', side: 'sell', type: 'limit', risk: 2 })]) {
+    const t = s.text(c);
+    assert(typeof t === 'string' && t.length > 20 && !/undefined|NaN|\[object/.test(t), 'texte : ' + s.id + ' : ' + t);
+  }
+  // 1) stop : refusé tant qu'il est absurde ou au-dessus du prix, accepté dès qu'il est raisonnable
+  const stop = by('stop');
+  assert(!stop.when(ctx()) && !stop.when(ctx({ sl: 9 })) && !stop.when(ctx({ sl: 101 })) && stop.when(ctx({ sl: 96 })));
+  assert(/96/.test(stop.text(ctx())));
+  // 2) taille : le calculateur donne une quantité qui risque 1 % du compte
+  const ask = g.c[st.idx] * (1 + TA.halfSpread(g, st.idx));
+  const sz = TA.sizeForRisk(g, st, ask, 96, 0.01, 1);
+  assert(sz.qty > 100 && sz.qty < 600, 'quantité : ' + sz.qty);
+  const size = by('size');
+  assert(!size.when(ctx({ sl: 96, qty: 200, sizeQty: sz.qty })) && size.when(ctx({ sl: 96, qty: sz.qty, sizeQty: sz.qty })) && !size.when(ctx({ qty: 0, sizeQty: 0 })));
+  // 3) journal, 4) ordre réel avec les règles obligatoires
+  const journal = by('journal');
+  assert(!journal.when(ctx({ reason: 'trend' })) && journal.when(ctx({ reason: 'trend', emotion: 'calm' })));
+  const buy = by('buy');
+  assert(!buy.when(ctx()) && /Acheter/.test(buy.text(ctx({ side: 'sell' }))) && /Marché/.test(buy.text(ctx({ type: 'limit' }))));
+  const r = TA.submit(g, st, { side: 'buy', type: 'market', qty: sz.qty, sl: 96, j: J });
+  assert(r.ok, r.error);
+  assert(buy.when(ctx()));
+  const risk = TA.riskOf(g, st, sz.qty, st.pos.avg, 96, 1);
+  assert(risk.pct > 0.008 && risk.pct <= 0.0201, 'risque : ' + risk.pct);
+  // 5) trois jours : la position survit (stop non touché), le gain est visible
+  const watch = by('watch');
+  for (let k = 0; k < T.bars; k++) { assert(!watch.when(ctx())); TA.advance(g, st); }
+  assert(watch.when(ctx()) && st.pos && st.trades.length === 0);
+  assert(TA.metrics(g, st).unreal > 0, 'gain non réalisé visible après trois jours');
+  assert(/Encore 2 jours/.test(watch.text(ctx({ bars: 1 }))) && !/Encore/.test(watch.text(ctx({ bars: 3 }))));
+  // 6) fermeture et résultat
+  const close = by('close');
+  assert(!close.when(ctx()));
+  assert(TA.submit(g, st, { side: 'sell', type: 'market', qty: st.pos.qty }).ok);
+  assert(close.when(ctx()) && st.trades.length === 1);
+  const resText = by('result').text(ctx());
+  assert(/Résultat/.test(resText) && /R<\/b>/.test(resText) && /\+/.test(resText), resText);
+  // le stop reste intact sur les 10 premiers jours de la partie guidée
+  let minLow = Infinity; for (let i = g.startIdx + 1; i <= g.startIdx + 10; i++) minLow = Math.min(minLow, g.l[i]);
+  assert(minLow > 97, 'creux : ' + minLow);
+  // un stop touché avant la fin de l'étape « watch » ne bloque pas le parcours : l'étape se franchit sans position
+  assert(watch.when(ctx({ bars: 1, hasPos: false })));
+  ok('tutoriel : étapes, textes, taille à 1 % du compte, trois jours puis fermeture, résultat en R');
 }
 
 console.log(`\n${n} groupes de tests reussis`);

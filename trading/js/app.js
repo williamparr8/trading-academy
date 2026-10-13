@@ -254,6 +254,7 @@
   }
   async function exportSave() {
     if (!App.g) return;
+    if (App.tuto) { toast('L’export n’est pas disponible pendant le tutoriel.', 'info'); return; }
     const text = JSON.stringify({ app: 'trading-academy', v: 1, savedAt: new Date().toISOString(), cfg: App.cfg, st: App.st });
     const name = `trading-academy_${App.cfg.code}_${unitWord().toLowerCase()}${App.st.idx - App.g.startIdx}.json`;
     let dl = null;
@@ -350,8 +351,8 @@
     // contexte
     const sc = TA.SCENARIOS.find((s) => s.id === App.cfg.scenario);
     const rl = st.rules, rtag = rl.mode === 'block' ? `Risque ${F.pct(rl.max).replace(',00', '')} max` : 'Risque conseillé';
-    const lead = isLive() ? `<span class="tag">Live</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">Cotes au ${shortDay(g.t[i])}</span>` : `<span class="tag">Entraînement</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">${esc(u.name)}</span><span class="tag">${esc(sc ? sc.name : '')}</span>`;
-    $('#ctx').innerHTML = `${lead}<span class="tag">${rtag}</span>${st.maxLev > 1 ? `<span class="tag">Levier ×${st.maxLev}</span>` : ''}<span class="tag">Niveau ${esc(TA.LEVELS[(st.level || 1) - 1].name)}</span><button class="tag mono" type="button" id="copy-code" title="Copier le code de défi">${isLive() ? esc(App.cfg.code) : 'Défi ' + esc(App.cfg.challenge || App.cfg.code)}</button>`;
+    const lead = App.tuto ? '<span class="tag">Tutoriel</span><span class="tag">Actions</span>' : isLive() ? `<span class="tag">Live</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">Cotes au ${shortDay(g.t[i])}</span>` : `<span class="tag">Entraînement</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">${esc(u.name)}</span><span class="tag">${esc(sc ? sc.name : '')}</span>`;
+    $('#ctx').innerHTML = `${lead}<span class="tag">${rtag}</span>${st.maxLev > 1 ? `<span class="tag">Levier ×${st.maxLev}</span>` : ''}<span class="tag">Niveau ${esc(TA.LEVELS[(st.level || 1) - 1].name)}</span>${App.tuto ? '' : `<button class="tag mono" type="button" id="copy-code" title="Copier le code de défi">${isLive() ? esc(App.cfg.code) : 'Défi ' + esc(App.cfg.challenge || App.cfg.code)}</button>`}`;
     updateTicket(); renderPos(); renderOpts(); renderOrders(); renderJournal(); renderCoach(); applyLiveChrome();
   }
 
@@ -507,6 +508,7 @@
     }
     $('#t-est').innerHTML = html;
     if (!a.closing) updateSizeBox(o, px, dir);
+    if (App.tuto) tutoSync();
   }
   function quickQty(p) {
     const g = App.g, st = App.st, o = readTicket(), a = ticketAction(), last = g.c[st.idx], hs = TA.halfSpread(g, st.idx);
@@ -627,7 +629,8 @@
   const PERIOD = { 1: 1200, 2: 600, 5: 240, 10: 120 };
   function setTimeMode(v, silent) {
     if (!App.cfg) return;
-    App.cfg.time = v; App.prefs.time = v; savePrefs();
+    App.cfg.time = v;
+    if (!App.tuto) { App.prefs.time = v; savePrefs(); }
     setSeg($('#tm-mode'), v);
     $('#rt').hidden = v !== 'rt';
     if (v === 'turn') pause();
@@ -669,7 +672,7 @@
      ===================================================================== */
   function saveNow() {
     clearTimeout(App.saveT); App.saveT = null;
-    if (!App.g || !App.st || App.st.closed) return;
+    if (!App.g || !App.st || App.st.closed || App.tuto) return;
     store.set(isLive() ? KEY_LIVE : KEY_SAVE, { app: 'trading-academy', v: 1, savedAt: Date.now(), cfg: App.cfg, st: App.st });
   }
   function saveSoon() { if (!App.saveT) App.saveT = setTimeout(saveNow, 300); }
@@ -678,6 +681,7 @@
      Fin de partie : révélation
      ===================================================================== */
   function endGame() {
+    if (App.tuto) { exitTutorial(false); return; }   // la partie guidée ne se termine pas comme une vraie partie
     pause();
     TA.finish(App.g, App.st);
     const sum = TA.summary(App.g, App.st, App.bench);
@@ -776,7 +780,103 @@
     show('end');
   }
 
-  function goHome() { pause(); saveNow(); show('home'); renderResume(); renderLiveCard(); renderProfile(); refreshSetup(); renderLearnCard(); }
+  /* =====================================================================
+     Tutoriel : partie guidée de quelques jours, ni sauvegardée ni comptée
+     (le contenu des étapes est dans js/tutorial.js)
+     ===================================================================== */
+  const TUTO = TA.TUTORIAL;
+  function renderTutoCard() {
+    const box = $('#tuto-card'); if (!box) return;
+    const done = !!App.prefs.tutoDone;
+    box.classList.toggle('new', !done);
+    box.innerHTML = done
+      ? '<div class="tuto-row"><span class="dim">Tutoriel terminé</span><button class="btn sm" type="button" data-tuto="start">Le refaire</button></div>'
+      : '<h2>Nouveau ici ?</h2><p style="margin:0">Un mini-parcours de 3 minutes : tu ouvres, suis et fermes un premier trade sur la vraie plateforme. Rien n’est compté ni sauvegardé.</p><div class="acts"><button class="btn primary" type="button" data-tuto="start">Commencer le tutoriel</button></div>';
+  }
+  // Tout ce que les étapes ont besoin de savoir de l'écran et de la partie.
+  function tutoCtx() {
+    const g = App.g, st = App.st, ts = st.trades, m = TA.metrics(g, st);
+    return {
+      last: g.c[st.idx], equity: m.equity,
+      sl: parseNum($('#t-sl').value), qty: parseNum($('#t-qty').value), sizeQty: App.sizeQty || 0, risk: parseNum($('#t-risk').value),
+      reason: $('#j-reason').value, emotion: $('#j-emo').value, side: App.t.side, type: App.t.type,
+      hasPos: !!st.pos, bars: st.idx - g.startIdx, lastTrade: ts.length ? ts[ts.length - 1] : null,
+      money: F.money, smoney: F.smoney, num: F.num,
+    };
+  }
+  async function startTutorial() {
+    if (App.tuto) return;
+    pause();
+    const T = TUTO, btns = $$('[data-tuto="start"]');
+    btns.forEach((b) => { b.disabled = true; });
+    try {
+      const g = TA.buildGame(await loadAsset(T.plan.assetId), T.plan, 'swing', T.length);
+      const st = TA.newState(g, T.rules, T.level, 1);
+      const cfg = { v: 1, mode: 'train', code: T.code, challenge: T.code, scenario: 'random', resolved: 'random', style: 'swing', length: T.length, lenIdx: 0, plan: T.plan, market: 'stock', time: 'turn', rules: T.rules, level: T.level, maxLev: 1, created: Date.now(), tuto: true };
+      App.tuto = { i: 0, praise: null, html: '', scroll: false };
+      begin(cfg, g, st);
+      $('#t-qty').value = '';   // le tutoriel passe par le calculateur de taille
+      $('#screen-game').classList.add('is-tuto');
+      updateTicket();
+      tutoSync();
+    } catch (e) {
+      App.tuto = null;
+      toast('Impossible de lancer le tutoriel : ' + e.message, 'err');
+    }
+    btns.forEach((b) => { b.disabled = false; });
+  }
+  function tutoStepChanged() {
+    const s = TUTO.steps[App.tuto.i];
+    if (s && s.tab) setTab(s.tab);
+    App.tuto.scroll = true;
+  }
+  // Une étape d'action est franchie dès que sa condition est vraie (même si le joueur est en avance).
+  function tutoSync() {
+    const T = App.tuto; if (!T || !App.g || !App.st) return;
+    const c = tutoCtx();
+    for (;;) {
+      const s = TUTO.steps[T.i];
+      if (!s || !s.when || !s.when(c)) break;
+      T.praise = s.ok || null; T.i++; tutoStepChanged();
+    }
+    tutoRender(c);
+  }
+  function tutoRender(c) {
+    const T = App.tuto, box = $('#tuto'), n = TUTO.steps.length, s = TUTO.steps[T.i];
+    if (!s) { exitTutorial(true); return; }
+    const manual = !s.when;
+    const html = `<div class="tuto-top"><span>Étape ${T.i + 1} sur ${n}</span><button class="tuto-skip" type="button" data-tuto="quit">Quitter le tutoriel</button></div>
+      <div class="tuto-bar"><i style="width:${Math.round((T.i / (n - 1)) * 100)}%"></i></div>
+      ${T.praise ? `<p class="tuto-ok">✓ ${T.praise}</p>` : ''}
+      <h2>${s.title}</h2><p>${s.text(c)}</p>
+      ${manual ? `<div class="tuto-acts"><button class="btn primary" type="button" data-tuto="next">${s.manual || 'Suivant'}</button></div>` : ''}`;
+    if (html !== T.html) { T.html = html; box.innerHTML = html; }
+    box.hidden = false;
+    // repères visuels : on les repose à chaque mise à jour, car les panneaux sont redessinés
+    $$('.tuto-hl').forEach((e) => e.classList.remove('tuto-hl'));
+    const targets = (s.target || []).flatMap((sel) => $$(sel)).filter((e) => e.offsetParent !== null);
+    targets.forEach((e) => e.classList.add('tuto-hl'));
+    if (T.scroll && targets.length) { T.scroll = false; requestAnimationFrame(() => targets[0].scrollIntoView({ block: 'center', behavior: 'smooth' })); }
+  }
+  function exitTutorial(completed) {
+    if (!App.tuto) return;
+    pause();
+    App.tuto = null;
+    $$('.tuto-hl').forEach((e) => e.classList.remove('tuto-hl'));
+    $('#tuto').hidden = true; $('#tuto').innerHTML = '';
+    $('#screen-game').classList.remove('is-tuto');
+    // la partie guidée ne reste pas en mémoire et n'apparaît pas comme « partie en cours »
+    App.g = null; App.st = null; App.cfg = null; App.sum = null; App.posKey = ''; App.jKey = '';
+    clearTimeout(App.saveT); App.saveT = null;
+    if (completed) { App.prefs.tutoDone = true; savePrefs(); }
+    goHome();
+    toast(completed ? 'Tutoriel terminé. À toi de jouer : lance une partie !' : 'Tutoriel quitté. Tu peux le reprendre depuis l’accueil.', completed ? 'ok' : 'info', 5200);
+  }
+
+  function goHome() {
+    if (App.tuto) { exitTutorial(false); return; }
+    pause(); saveNow(); show('home'); renderResume(); renderLiveCard(); renderProfile(); refreshSetup(); renderLearnCard(); renderTutoCard();
+  }
 
   /* ---------- options : panneau du ticket, options détenues ---------- */
   const optSel = { kind: 'call', exp: 1, k: 2 };   // échéance et prix d'exercice choisis par leur rang : ils suivent le prix à chaque barre
@@ -1158,7 +1258,7 @@
       note.textContent = k === 1 ? 'Cours réels. Le compte avance quand de nouvelles cotes sont publiées.' : `Prix du graphique et du ticket = cours réel × ${String(k).replace('.', ',')}, pour garder des quantités entières. L’en-tête et la légende montrent le cours réel. Le compte avance quand de nouvelles cotes sont publiées.`;
       note.hidden = false;
     } else if (note) note.hidden = true;
-    const be = $('#btn-end'); if (be && !be.dataset.armed) be.textContent = live ? 'Clôturer le compte' : 'Terminer la partie';
+    const be = $('#btn-end'); if (be && !be.dataset.armed) be.textContent = App.tuto ? 'Quitter le tutoriel' : live ? 'Clôturer le compte' : 'Terminer la partie';
   }
 
   /* ---------- carte « Ton niveau » (accueil) ---------- */
@@ -1281,6 +1381,7 @@
     $('#pause-fill').onchange = (e) => { App.prefs.pauseFill = e.target.checked; savePrefs(); };
     let armed = null;
     $('#btn-end').onclick = (e) => {
+      if (App.tuto) { exitTutorial(false); return; }
       const b = e.currentTarget;
       const base = isLive() ? 'Clôturer le compte' : 'Terminer la partie';
       if (!armed) { b.textContent = isLive() ? 'Confirmer la clôture' : 'Confirmer : révéler l’actif'; armed = setTimeout(() => { armed = null; b.textContent = base; }, 4000); return; }
@@ -1312,6 +1413,19 @@
       $('#t-qty').value = quickQty(+b.dataset.p) || ''; updateTicket();
     });
     $('#t-go').onclick = submitTicket;
+    // tutoriel : démarrage, étape suivante, sortie ; le journal du ticket fait aussi avancer les étapes
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tuto]'); if (!b) return;
+      const a = b.dataset.tuto;
+      if (a === 'start') startTutorial();
+      else if (a === 'quit') exitTutorial(false);
+      else if (a === 'next' && App.tuto) {
+        const T = App.tuto;
+        if (T.i >= TUTO.steps.length - 1) { exitTutorial(true); return; }
+        T.i++; T.praise = null; tutoStepChanged(); tutoSync();
+      }
+    });
+    $('#f-journal').addEventListener('change', () => { if (App.tuto) tutoSync(); });
     // accueil : mode, défi, classement
     bindSeg($('#s-mode'), (v) => { App.prefs.mode = v; applyMode(); savePrefs(); });
     $('#s-asset').addEventListener('change', () => { App.prefs.asset = $('#s-asset').value; savePrefs(); });
@@ -1370,7 +1484,7 @@
 
   async function init() {
     bind(); buildSetup(); setTab('pos');
-    renderResume(); renderLiveCard(); renderProfile(); renderLearnCard(); renderBoardCard();
+    renderResume(); renderLiveCard(); renderProfile(); renderLearnCard(); renderBoardCard(); renderTutoCard();
     detectAI(); detectShared();   // le coach IA n'apparaît que si la page peut interroger Claude
     try {
       [App.index, App.bench] = await Promise.all([loadJSON('data/index.json'), loadJSON('data/bench.json')]);

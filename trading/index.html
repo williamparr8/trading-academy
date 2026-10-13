@@ -301,6 +301,25 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
   .chart{height:clamp(280px,40vh,420px)}
   .chart-head{padding-inline:12px}
 }
+/* Tutoriel : carte collante en haut de la partie, repères autour des éléments à utiliser */
+.tuto{grid-column:1/-1;position:sticky;top:8px;z-index:35;display:grid;gap:6px;padding:12px 16px;background:var(--panel-2);border:1px solid var(--accent);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.tuto-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+.tuto-skip{background:none;border:0;padding:2px 0;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer}
+.tuto-skip:hover{color:var(--text)}
+.tuto-bar{height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.tuto-bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.tuto h2{margin:0;font:600 16px/1.3 var(--f-display)}
+.tuto p{margin:0;font-size:13.5px;line-height:1.5}
+.tuto-ok{color:var(--up)}
+.tuto-acts{display:flex;gap:8px;margin-top:4px}
+.tuto-hl{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px;animation:tutoPulse 1.8s ease-in-out infinite;scroll-margin-top:210px}
+@keyframes tutoPulse{0%,100%{outline-color:var(--accent)}50%{outline-color:rgba(107,156,255,.25)}}
+@media (prefers-reduced-motion:reduce){.tuto-hl{animation:none}}
+.is-tuto #tm-mode{display:none}
+.tuto-card.new{border-color:var(--accent);background:var(--accent-a)}
+.tuto-card h2{margin:0 0 4px}
+.tuto-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+@media (max-width:560px){.tuto{padding:10px 12px}.tuto p{font-size:13px}}
 </style>
 
 <div class="wrap">
@@ -328,6 +347,7 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
       </ul>
     </div>
     <div class="side-stack">
+      <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel"></section>
       <section class="card resume" id="resume" hidden></section>
       <section class="card resume" id="live-card" hidden></section>
       <form class="card setup" id="setup" autocomplete="off">
@@ -384,6 +404,7 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
 
   <!-- ===== Partie ===== -->
   <main class="game" id="screen-game" hidden>
+    <section class="tuto" id="tuto" role="region" aria-label="Tutoriel" aria-live="polite" hidden></section>
     <div class="col">
       <div class="mcall" id="mcall" role="alert" hidden></div>
       <section class="chartbox">
@@ -530,4 +551,5 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
 <script src="js/lessons.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/board.js"></script>
+<script src="js/tutorial.js"></script>
 <script src="js/app.js"></script>
