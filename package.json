@@ -1,0 +1,12 @@
+{
+  "name": "trading-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulateur de trading en français : marchés historiques réels, actif et date cachés.",
+  "scripts": {
+    "test": "node tools/test-engine.mjs",
+    "build": "node tools/build-pages.mjs",
+    "serve": "node tools/serve.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

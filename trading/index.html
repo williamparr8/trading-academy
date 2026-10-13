@@ -1,0 +1,533 @@
+<title>Trading Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : terminal de courtage sombre. Graphique large à gauche, colonne portefeuille/ordres à droite.
+   Un seul look volontaire (sombre) : fond bleuté, vert/rouge réservés aux hausses/baisses, bleu pour l'interaction. */
+:root{
+  color-scheme:dark;
+  --bg:#080c11; --panel:#0e141b; --panel-2:#121a23; --raise:#18222d;
+  --line:#1c2733; --line-2:#273545; --grid:#131c26;
+  --text:#dde4ec; --muted:#8493a4; --faint:#566576;
+  --up:#2dbe8b; --down:#ef5468; --accent:#6b9cff; --warn:#f0b34a; --violet:#a58bff; --cyan:#4cc3d9;
+  --up-a:rgba(45,190,139,.32); --down-a:rgba(239,84,104,.32); --accent-a:rgba(107,156,255,.14); --warn-a:rgba(240,179,74,.14);
+  --f-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-display:'Bricolage Grotesque','IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;padding-inline:16px;padding-block:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1480px;margin:0 auto}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pos{color:var(--up)} .neg{color:var(--down)} .dim{color:var(--muted)} .warn{color:var(--warn)}
+
+/* ---- barre du haut ---- */
+.top{display:flex;align-items:center;gap:14px;padding-block:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:700 17px/1 var(--f-display);letter-spacing:-.01em;background:none;border:0;padding:0;cursor:pointer}
+.ctx{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--line-2);border-radius:99px;font-size:12px;color:var(--muted);white-space:nowrap;background:none}
+button.tag{cursor:pointer} button.tag:hover{color:var(--text);border-color:var(--faint)}
+.top-actions{margin-left:auto;display:flex;gap:8px}
+
+/* ---- boutons et champs ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;border:1px solid var(--line-2);border-radius:6px;background:var(--raise);color:var(--text);font-weight:500;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--faint)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#06101f;font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn.buy{background:var(--up);border-color:var(--up);color:#04140d;font-weight:600}
+.btn.sell{background:var(--down);border-color:var(--down);color:#1a0509;font-weight:600}
+.btn.ghost{background:none}
+.btn.big{padding:12px 18px;font-size:15px;width:100%}
+.btn.sm{padding:5px 10px;font-size:12px}
+:is(button,input,select,summary):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px}
+.seg button{padding:6px 12px;border:0;background:none;border-radius:5px;color:var(--muted);font-weight:500;font-size:13px;cursor:pointer;white-space:nowrap}
+.seg button:hover:not(:disabled):not(.on){color:var(--text)}
+.seg button.on{background:var(--raise);color:var(--text);box-shadow:inset 0 0 0 1px var(--line-2)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.seg.sides{display:flex;width:100%}.seg.sides button{flex:1;padding:8px}
+.seg.sides button.on.buy{background:var(--up);color:#04140d;box-shadow:none}
+.seg.sides button.on.sell{background:var(--down);color:#1a0509;box-shadow:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;border:1px solid var(--line-2);background:none;color:var(--muted);font-size:12px;cursor:pointer}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--muted));opacity:.45}
+.chip.on{color:var(--text);background:var(--accent-a);border-color:var(--accent)} .chip.on i{opacity:1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:12px;color:var(--muted)}
+input,select{background:var(--bg);border:1px solid var(--line-2);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
+input{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+select{font-family:var(--f-ui)}
+input::placeholder{color:var(--faint)}
+.err{margin:0;min-height:0;color:var(--down);font-size:12.5px}
+.err:empty{display:none}
+.hint{margin:0;color:var(--muted);font-size:12.5px}
+.fine{margin:0;color:var(--faint);font-size:12px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.card>h2,.lab{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:0}
+.kv>div{min-width:0}.kv dt{font-size:12px;color:var(--muted)}.kv dd{margin:2px 0 0;font:500 14px var(--f-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.row{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px 14px;align-items:center}
+.row>.lab{margin:0}
+
+/* ---- accueil ---- */
+.home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,470px);gap:48px;padding-block:44px 56px;align-items:start}
+.home h1{margin:0 0 14px;font:700 clamp(30px,4.4vw,48px)/1.05 var(--f-display);letter-spacing:-.025em;text-wrap:balance}
+.lede{margin:0 0 28px;max-width:52ch;color:var(--muted);font-size:16px;line-height:1.55}
+.facts{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.facts li{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+.facts b{font-weight:600}.facts span{color:var(--muted)}
+.setup{display:flex;flex-direction:column;gap:14px;padding:20px}
+.setup>h2{margin:0}
+.side-stack{display:flex;flex-direction:column;gap:12px}
+.resume{display:flex;flex-direction:column;gap:10px;border-color:var(--line-2);background:var(--panel-2)}
+.resume .acts{display:flex;gap:8px;flex-wrap:wrap}
+.imp{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* ---- partie ---- */
+.game{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:12px;padding-block:12px 40px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.chartbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chart-head{display:flex;align-items:baseline;gap:6px 16px;flex-wrap:wrap;padding:12px 14px 6px}
+.asset{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.asset .name{font:600 15px var(--f-display);letter-spacing:-.005em}
+.asset .px{font:600 22px var(--f-mono);font-variant-numeric:tabular-nums}
+.asset .chg{font:500 13px var(--f-mono)}
+.legend{font:12px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.legend b{font-weight:500;color:var(--text)}
+.chart-tools{display:flex;gap:6px;flex-wrap:wrap;padding:6px 14px 10px;align-items:center}
+.chart-tools .sp{flex:1}
+.chart{height:clamp(360px,58vh,660px);width:100%;border-top:1px solid var(--line)}
+.timebar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:12px 14px}
+.timebar .grow{flex:1;min-width:150px}
+.prog{height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:6px}
+.prog>i{display:block;height:100%;background:var(--accent);width:0}
+.ptxt{font:12px var(--f-mono);color:var(--muted)}
+.rt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.chk input{width:auto}
+
+.eq{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.eq-val{font:600 24px var(--f-mono);font-variant-numeric:tabular-nums}
+.eq-chg{font:500 13px var(--f-mono)}
+.spark{display:block;width:100%;height:44px;margin:8px 0 12px}
+.ticket{display:flex;flex-direction:column;gap:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick{display:flex;gap:6px}.quick button{flex:1;padding:4px 0;border:1px solid var(--line-2);border-radius:5px;background:none;color:var(--muted);font-size:12px;cursor:pointer}
+.quick button:hover{color:var(--text);border-color:var(--faint)}
+.est{margin:0;display:grid;gap:4px;font-size:12.5px}
+.est>div{display:flex;justify-content:space-between;gap:12px}.est dt{color:var(--muted)}.est dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.est .risk{padding:6px 8px;border-radius:5px;background:var(--panel-2)}
+.est .risk.over{background:var(--warn-a)}
+.tabs{display:flex;border-bottom:1px solid var(--line);margin:-14px -16px 12px}
+.tabs button{flex:1;padding:11px 6px;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font-weight:500;font-size:13px;cursor:pointer}
+.tabs button.on{color:var(--text);border-color:var(--accent)}
+.badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--raise);font:11px/17px var(--f-mono);color:var(--muted)}
+.empty{margin:6px 0;color:var(--muted);font-size:13px}
+.pos-box{display:flex;flex-direction:column;gap:12px}
+.pos-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;font-weight:500;color:var(--muted);padding:0 6px 6px 0;font-size:11.5px}
+.tbl td{padding:6px 6px 6px 0;border-top:1px solid var(--line);vertical-align:top}
+.tbl .r{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.scroll-x{overflow-x:auto}
+.olist{display:flex;flex-direction:column}
+.orow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+.orow:first-child{border-top:0}
+
+/* ---- calculateur de taille, journal ---- */
+.sizebox{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px dashed var(--line-2);border-radius:6px;font-size:12.5px}
+.sizebox.over{border-color:var(--warn)}
+.sz-in{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.sz-in input{width:64px;padding:4px 6px;text-align:right}
+.sz-out{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
+.sz-out span{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+fieldset.jrn{margin:0;padding:6px 10px 10px;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:8px;min-width:0}
+fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.jlist{display:flex;flex-direction:column;gap:10px}
+.jc{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--panel-2);min-width:0}
+.jc.open{border-color:var(--accent)}
+.jc header{display:flex;justify-content:space-between;gap:4px 8px;align-items:baseline;flex-wrap:wrap}
+.jc .res{font:600 13px var(--f-mono);font-variant-numeric:tabular-nums}
+.jc .when{font:12.5px var(--f-mono);color:var(--muted)}
+.jent{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.jc .tag{padding:1px 8px;font-size:11.5px}
+.jnote{margin:0;font-size:12.5px}
+.jc input{font-family:var(--f-ui);font-size:13px}
+
+/* ---- niveaux et discipline ---- */
+.profile{display:flex;flex-direction:column;gap:10px}
+.profile>h2{margin:0}
+.lvl-head{display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.lvl-head b{font:700 20px/1.1 var(--f-display);letter-spacing:-.01em}
+.ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;list-style:none;margin:0;padding:0}
+.ladder li{display:flex;flex-direction:column;gap:2px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--faint);overflow-wrap:anywhere}
+.ladder li b{font:600 11px var(--f-mono)}
+.ladder li.done{color:var(--muted);border-color:var(--line-2)}
+.ladder li.now{color:var(--text);border-color:var(--accent);background:var(--accent-a)}
+.sub{margin:4px 0 0;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.crit{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.crit li{display:flex;gap:8px;align-items:flex-start;font-size:13px;min-width:0;color:var(--muted)}
+.crit .icone{flex:0 0 16px;text-align:center;font-weight:700}
+.crit li.fait .icone{color:var(--up)}
+.crit li.afaire{color:var(--text)}.crit li.afaire .icone{color:var(--down)}
+.crit li.req .icone{color:var(--faint)}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:3px 0}
+.frow .tag{padding:1px 8px;font-size:11.5px}
+.tag.ok{color:var(--up);border-color:var(--up)}
+.tag.soon{color:var(--warn);border-color:var(--warn)}
+.glist{display:flex;flex-direction:column}
+.grow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 0;border-top:1px solid var(--line);font-size:12.5px}
+.grow:first-child{border-top:0}
+.up-note{margin:0;padding:10px 12px;border:1px solid var(--up);border-radius:6px;background:var(--panel-2)}
+
+/* ---- classement ---- */
+.board{display:grid;gap:12px;padding-block:28px 56px;max-width:1100px;margin:0 auto}
+.bfilters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.btable{min-width:760px}
+.btable th{white-space:nowrap}
+.btable th button{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}
+.btable th button:hover{color:var(--text)}
+.btable th[aria-sort] button{color:var(--text)}
+.btable td.r,.btable th.r{text-align:right}
+.btable tr.me td{background:var(--accent-a)}
+.btable .code{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.btable .code:hover{color:var(--accent)}
+@media (max-width:700px){.bfilters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---- options et coach ---- */
+.optp{display:flex;flex-direction:column;gap:10px}
+.sub-t{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.coach-list{display:flex;flex-direction:column;gap:10px}
+.cc{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--panel-2);display:flex;flex-direction:column;gap:8px;min-width:0}
+.cc header{display:flex;justify-content:space-between;gap:4px 8px;align-items:baseline;flex-wrap:wrap}
+.cc header .when{font:12.5px var(--f-mono);color:var(--muted)}
+.fd{display:flex;gap:8px;align-items:flex-start;font-size:13px;min-width:0}
+.fd i{flex:none;width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--faint)}
+.fd.warn i{background:var(--warn)}.fd.good i{background:var(--up)}
+.fd b{font-weight:600}.fd p{margin:2px 0 0;color:var(--muted)}
+.ai-box{border-top:1px dashed var(--line-2);padding-top:8px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.ai-box .lab2{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--violet)}
+.ai-box p{margin:0}
+
+/* ---- appel de marge ---- */
+.mcall{padding:10px 14px;border:1px solid var(--down);background:rgba(239,84,104,.12);border-radius:8px;font-size:13.5px}
+.mcall b{color:var(--down)}
+.tag.short{color:var(--down);border-color:var(--down)}
+.tag.long{color:var(--up);border-color:var(--up)}
+
+/* ---- formation : leçons et quiz ---- */
+.learn{display:grid;gap:14px;padding-block:28px 56px;max-width:820px;margin:0 auto}
+.lhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap}
+.lhead h1{margin:0;font:700 clamp(26px,4vw,38px)/1.1 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+.lgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lcard{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;color:inherit;min-width:0}
+.lcard:hover{border-color:var(--faint)}
+.lcard b{font:600 15px/1.3 var(--f-ui)}
+.lcard .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.lesson{display:flex;flex-direction:column;gap:10px}
+.lesson p,.lesson li{max-width:68ch;margin:0}
+.lesson h3{margin:10px 0 0;font:600 14px var(--f-ui)}
+.lesson ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.tipbox{padding:10px 12px;border-left:3px solid var(--warn);background:var(--panel-2);border-radius:0 6px 6px 0;max-width:68ch}
+.fig{width:100%;height:auto;max-width:520px;display:block}
+.fig text{fill:var(--muted);font:11.5px var(--f-ui)}
+.quiz{display:flex;flex-direction:column;gap:12px}
+.qq{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.qq .qtext{margin:0;font-weight:600}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:6px;cursor:pointer;min-width:0}
+.opt input{width:auto;margin-top:3px;flex:none}
+.opt.good{border-color:var(--up);background:rgba(45,190,139,.1)}
+.opt.bad{border-color:var(--down);background:rgba(239,84,104,.1)}
+.expl{margin:0;font-size:12.5px;color:var(--muted)}
+.score{margin:0;padding:10px 12px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line-2)}
+@media (max-width:700px){.lgrid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---- fin de partie ---- */
+.end{display:grid;gap:12px;padding-block:28px 56px;max-width:980px;margin:0 auto}
+.reveal{padding:22px}
+.eyebrow{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.tick{margin:0;font:700 clamp(40px,8vw,72px)/1 var(--f-display);letter-spacing:-.03em}
+.aname{margin:6px 0 0;font-size:16px}
+.range{margin:10px 0 0;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.kpis>div{padding:14px 16px;border-left:1px solid var(--line);min-width:0}.kpis>div:first-child{border-left:0}
+.kpis dt{font-size:12px;color:var(--muted)}.kpis dd{margin:4px 0 0;font:600 22px var(--f-mono);font-variant-numeric:tabular-nums}
+.verdict{margin:0;font-size:15px}
+.cmp{width:100%;height:auto;display:block}
+.cmp text{fill:var(--muted);font:11px var(--f-mono)}
+.leg{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.leg i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.end-acts{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---- notifications ---- */
+.toasts{position:fixed;right:16px;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:50;pointer-events:none}
+.toast{pointer-events:auto;background:var(--raise);border:1px solid var(--line-2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:6px;max-width:380px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:tin .18s ease-out}
+.toast.ok{border-left-color:var(--up)}.toast.err{border-left-color:var(--down)}.toast.warn{border-left-color:var(--warn)}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+
+@media (max-width:960px){
+  .home{grid-template-columns:minmax(0,1fr);gap:28px;padding-block:24px 40px}
+  .game{grid-template-columns:minmax(0,1fr)}
+  .chart{height:clamp(320px,52vh,520px)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis>div:nth-child(3){border-left:0}.kpis>div:nth-child(n+3){border-top:1px solid var(--line)}
+}
+/* barre d'action fixe, téléphone et tablette seulement */
+.minibar{display:none}
+@media (max-width:960px){
+  .minibar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line-2)}
+  .minibar .mb-info{display:flex;flex-direction:column;min-width:0;font-size:13px}
+  .minibar .mb-px{font:600 16px var(--f-mono)}
+  #screen-game{padding-bottom:88px}
+  #btn-next{display:none}
+  .toasts{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:560px){
+  .row{grid-template-columns:minmax(0,1fr)}
+  .facts li{grid-template-columns:minmax(0,1fr);gap:2px}
+  .top{gap:8px 10px}
+  .ctx{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .ctx::-webkit-scrollbar{display:none}
+  .hide-sm{display:none}
+  .chart-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .chart-tools::-webkit-scrollbar{display:none}
+  .chart-tools>*{flex:none}
+  .chart-tools .sp{flex:1 0 8px}
+  .chart{height:clamp(280px,40vh,420px)}
+  .chart-head{padding-inline:12px}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <button class="brand" id="go-home" type="button" aria-label="Accueil Trading Academy">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18M12 6v15M19 2v13" stroke="#566576" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="8" width="4" height="8" rx="1" fill="#ef5468"/><rect x="10" y="9" width="4" height="8" rx="1" fill="#2dbe8b"/><rect x="17" y="5" width="4" height="7" rx="1" fill="#2dbe8b"/></svg>
+      Trading Academy
+    </button>
+    <div class="ctx" id="ctx" hidden></div>
+    <div class="top-actions" id="top-actions" hidden>
+      <button class="btn sm" id="btn-export" type="button">Exporter<span class="hide-sm">&nbsp;la partie</span></button>
+      <button class="btn sm ghost" id="btn-home" type="button">Menu</button>
+    </div>
+  </header>
+
+  <!-- ===== Accueil ===== -->
+  <main class="home" id="screen-home">
+    <div>
+      <h1>Apprends à trader sans risquer un sou.</h1>
+      <p class="lede">Un actif réel, une période réelle, 100 000 $ virtuels. Tu décides sans savoir où tu es dans l’histoire, puis la partie te dévoile ce que tu viens de vivre.</p>
+      <ul class="facts">
+        <li><b>Vraies cotes</b><span>Des prix historiques réels : krachs, rebonds et surprises incluses. Aucune simulation aléatoire.</span></li>
+        <li><b>Actif et date cachés</b><span>Le prix de départ est ramené à 100 $. Le titre et la période ne sont révélés qu’à la fin.</span></li>
+        <li><b>Coûts réalistes</b><span>Spread, commissions, stops qui glissent quand le marché ouvre en gap.</span></li>
+      </ul>
+    </div>
+    <div class="side-stack">
+      <section class="card resume" id="resume" hidden></section>
+      <section class="card resume" id="live-card" hidden></section>
+      <form class="card setup" id="setup" autocomplete="off">
+        <h2>Nouvelle partie</h2>
+        <div class="row"><span class="lab">Mode</span>
+          <div class="seg" id="s-mode" role="group" aria-label="Mode">
+            <button type="button" data-v="train" class="on">Entraînement</button>
+            <button type="button" data-v="live" id="mode-live">Live</button>
+          </div></div>
+        <p class="hint" id="s-mode-desc"></p>
+        <div class="row"><span class="lab">Marché</span>
+          <div class="seg" id="s-market" role="group" aria-label="Marché">
+            <button type="button" data-v="stock" class="on">Actions</button>
+            <button type="button" data-v="forex">Forex</button>
+            <button type="button" data-v="crypto">Crypto</button>
+          </div></div>
+        <p class="hint" id="s-market-desc"></p>
+        <div class="row" id="r-asset" hidden><label class="lab" for="s-asset">Actif</label><select id="s-asset"></select></div>
+        <div class="row"><span class="lab">Style</span>
+          <div class="seg" id="s-style" role="group" aria-label="Style de trading">
+            <button type="button" disabled title="Demande des données intraday : prévu plus tard">Day trading · bientôt</button>
+            <button type="button" data-v="swing" class="on">Swing</button>
+            <button type="button" data-v="long">Long terme</button>
+          </div></div>
+        <div class="row"><label class="lab" for="s-scen">Scénario</label><select id="s-scen"></select></div>
+        <p class="hint" id="s-scen-desc"></p>
+        <div class="row"><label class="lab" for="s-len">Durée</label><select id="s-len"></select></div>
+        <div class="row"><span class="lab">Temps</span>
+          <div class="seg" id="s-time" role="group" aria-label="Mode de temps">
+            <button type="button" data-v="turn" class="on">Tour par tour</button>
+            <button type="button" data-v="rt">Temps réel accéléré</button>
+          </div></div>
+        <div class="row"><label class="lab" for="s-lev">Levier</label><select id="s-lev"></select></div>
+        <p class="hint" id="s-lev-desc"></p>
+        <div class="row"><label class="lab" for="s-risk">Risque</label><select id="s-risk"></select></div>
+        <p class="hint" id="s-risk-desc"></p>
+        <div class="row"><label class="lab" for="s-code">Code de défi</label><input id="s-code" placeholder="Facultatif, ex. K7M4-9QX2" maxlength="12" spellcheck="false"></div>
+        <p class="hint" id="s-code-desc"></p>
+        <p class="err" id="s-err" role="alert"></p>
+        <button class="btn primary big" id="s-go" type="submit" disabled>Chargement des cotes…</button>
+        <p class="fine" id="s-fine"></p>
+      </form>
+      <section class="card" id="board-card" aria-label="Classement"></section>
+      <section class="card" id="learn-card" aria-label="Formation"></section>
+      <section class="card profile" id="profile" aria-label="Ton niveau"></section>
+      <div class="card imp">
+        <span class="dim">Reprendre une partie exportée</span>
+        <label class="btn sm" for="file-import" style="cursor:pointer">Importer un fichier .json</label>
+        <input type="file" id="file-import" accept=".json,application/json" hidden>
+      </div>
+      <p class="fine">Simulation éducative. Rien ici n’est un conseil financier.</p>
+    </div>
+  </main>
+
+  <!-- ===== Partie ===== -->
+  <main class="game" id="screen-game" hidden>
+    <div class="col">
+      <div class="mcall" id="mcall" role="alert" hidden></div>
+      <section class="chartbox">
+        <div class="chart-head">
+          <div class="asset"><span class="name">Actif mystère</span><span class="px" id="px">—</span><span class="chg" id="chg"></span></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="chart-tools" id="inds">
+          <button class="chip" type="button" data-k="vol" style="--c:var(--faint)"><i></i>Volume</button>
+          <button class="chip" type="button" data-k="sma20" style="--c:var(--warn)"><i></i>MM 20</button>
+          <button class="chip" type="button" data-k="sma50" style="--c:var(--accent)"><i></i>MM 50</button>
+          <button class="chip" type="button" data-k="boll" style="--c:var(--violet)"><i></i>Bollinger</button>
+          <button class="chip" type="button" data-k="rsi" style="--c:var(--cyan)"><i></i>RSI</button>
+          <button class="chip" type="button" data-k="macd" style="--c:var(--accent)"><i></i>MACD</button>
+          <span class="sp"></span>
+          <button class="btn sm" type="button" id="z-out" aria-label="Dézoomer">−</button>
+          <button class="btn sm" type="button" id="z-in" aria-label="Zoomer">+</button>
+          <button class="btn sm" type="button" id="z-reset">Recentrer</button>
+        </div>
+        <div class="chart" id="chart"></div>
+      </section>
+      <section class="card timebar" id="timebar">
+        <button class="btn primary" type="button" id="btn-next">Jour suivant</button>
+        <div class="seg" id="tm-mode" role="group" aria-label="Mode de temps">
+          <button type="button" data-v="turn">Tour par tour</button>
+          <button type="button" data-v="rt">Temps réel</button>
+        </div>
+        <div class="rt" id="rt" hidden>
+          <button class="btn" type="button" id="btn-play">Lecture</button>
+          <div class="seg" id="tm-speed" role="group" aria-label="Vitesse">
+            <button type="button" data-v="1">x1</button><button type="button" data-v="2">x2</button><button type="button" data-v="5">x5</button><button type="button" data-v="10">x10</button>
+          </div>
+          <label class="chk"><input type="checkbox" id="pause-fill"> Pause à l’exécution d’un ordre</label>
+        </div>
+        <div class="grow"><div class="ptxt" id="prog-txt"></div><div class="prog"><i id="prog-bar"></i></div></div>
+        <button class="btn ghost" type="button" id="btn-end">Terminer la partie</button>
+      </section>
+    </div>
+
+    <aside class="col">
+      <section class="card" id="pf">
+        <h2>Portefeuille</h2>
+        <div class="eq"><div class="eq-val" id="pf-eq"></div><div class="eq-chg" id="pf-chg"></div></div>
+        <svg class="spark" id="pf-spark" viewBox="0 0 300 44" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <dl class="kv">
+          <div><dt>Liquidités</dt><dd id="pf-cash"></dd></div>
+          <div><dt>Valeur des positions</dt><dd id="pf-pos"></dd></div>
+          <div><dt>P&amp;L non réalisé</dt><dd id="pf-unr"></dd></div>
+          <div><dt>P&amp;L réalisé</dt><dd id="pf-real"></dd></div>
+          <div><dt>Drawdown actuel</dt><dd id="pf-dd"></dd></div>
+          <div><dt>Drawdown maximal</dt><dd id="pf-ddmax"></dd></div>
+          <div id="pf-levrow" hidden><dt>Levier utilisé</dt><dd id="pf-lev"></dd></div>
+          <div id="pf-liqrow" hidden><dt>Prix de liquidation</dt><dd id="pf-liq"></dd></div>
+          <div id="pf-optrow" hidden><dt>Options détenues</dt><dd id="pf-opt"></dd></div>
+        </dl>
+      </section>
+
+      <section class="card ticket" id="ticket">
+        <h2 style="margin:0">Ordre</h2>
+        <div class="seg" id="t-inst" role="group" aria-label="Instrument"><button type="button" data-v="base" class="on">Marché</button><button type="button" data-v="opt" id="inst-opt">Options</button></div>
+        <div id="opt-panel" class="optp" hidden>
+          <div class="seg sides" id="o-kind" role="group" aria-label="Type d’option"><button type="button" class="on buy" data-v="call">Call · hausse</button><button type="button" class="sell" data-v="put">Put · baisse</button></div>
+          <div class="two">
+            <label class="field"><span>Échéance</span><select id="o-exp"></select></label>
+            <label class="field"><span>Prix d’exercice</span><select id="o-strike"></select></label>
+          </div>
+          <label class="field"><span>Contrats (1 contrat = 100 unités)</span><input id="o-qty" inputmode="numeric" value="2" autocomplete="off"></label>
+          <dl class="est" id="o-est"></dl>
+          <p class="hint">Tu achètes une option : ta perte maximale est la prime payée. Règlement en espèces à l’échéance.</p>
+        </div>
+        <div class="seg sides" id="t-side" role="group" aria-label="Sens"><button type="button" class="on buy" data-v="buy">Acheter</button><button type="button" class="sell" data-v="sell">Vendre</button></div>
+        <p class="hint" id="t-act"></p>
+        <div class="seg" id="t-type" role="group" aria-label="Type d’ordre">
+          <button type="button" class="on" data-v="market">Marché</button><button type="button" data-v="limit">Limite</button><button type="button" data-v="stop">Stop</button>
+        </div>
+        <label class="field" id="f-price" hidden><span id="f-price-l">Prix</span><input id="t-price" inputmode="decimal" autocomplete="off"></label>
+        <label class="field" id="f-qty"><span id="qty-l">Quantité (actions)</span><input id="t-qty" inputmode="numeric" autocomplete="off"></label>
+        <div class="quick" id="t-quick"><button type="button" data-p="0.25">25 %</button><button type="button" data-p="0.5">50 %</button><button type="button" data-p="0.75">75 %</button><button type="button" data-p="1">Max</button></div>
+        <div class="two" id="f-exits">
+          <label class="field"><span id="sl-l">Stop-loss</span><input id="t-sl" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
+          <label class="field"><span>Objectif</span><input id="t-tp" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
+        </div>
+        <div class="sizebox" id="t-size">
+          <label class="sz-in">Risquer <input id="t-risk" inputmode="decimal" aria-label="Risque voulu en pourcentage du compte" autocomplete="off"> % du compte</label>
+          <div class="sz-out"><span id="sz-txt"></span><button class="btn sm" type="button" id="sz-use">Utiliser</button></div>
+        </div>
+        <fieldset class="jrn" id="f-journal">
+          <legend id="j-legend">Journal de l’ordre</legend>
+          <div class="two">
+            <label class="field"><span>Raison d’entrée</span><select id="j-reason"></select></label>
+            <label class="field"><span>Émotion</span><select id="j-emo"></select></label>
+          </div>
+          <label class="field"><span>Note (facultatif)</span><input id="j-note" maxlength="160" placeholder="Ce que tu vois, ton plan…" autocomplete="off"></label>
+        </fieldset>
+        <dl class="est" id="t-est"></dl>
+        <p class="err" id="t-err" role="alert"></p>
+        <button class="btn buy big" type="button" id="t-go">Acheter au marché</button>
+      </section>
+
+      <section class="card" id="tabs">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" class="on" data-t="pos">Position</button>
+          <button type="button" role="tab" data-t="ord">Ordres<span class="badge" id="b-ord">0</span></button>
+          <button type="button" role="tab" data-t="hist">Journal<span class="badge" id="b-hist">0</span></button>
+          <button type="button" role="tab" data-t="coach">Coach<span class="badge" id="b-coach">0</span></button>
+        </div>
+        <div id="tab-pos"><div id="pos-main"></div><div id="pos-opts"></div></div>
+        <div id="tab-ord" hidden></div>
+        <div id="tab-hist" hidden></div>
+        <div id="tab-coach" hidden></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- ===== Fin de partie ===== -->
+  <main class="end" id="screen-end" hidden></main>
+
+  <!-- ===== Classement ===== -->
+  <main class="board" id="screen-board" hidden>
+    <div class="lhead"><h1>Classement</h1><button class="btn" type="button" id="b-back">Retour à l’accueil</button></div>
+    <p class="dim" id="b-status" style="margin:0"></p>
+    <div class="bfilters">
+      <label class="field"><span>Code de défi</span><input id="b-code" placeholder="ABCD-2345 ou ABCD-2345-A0S1" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Joueur</span><select id="b-pseudo"></select></label>
+      <label class="field"><span>Mode</span><select id="b-mode"><option value="all">Tous</option><option value="train">Entraînement</option><option value="live">Live</option></select></label>
+      <label class="field"><span>Marché</span><select id="b-market"><option value="all">Tous</option><option value="stock">Actions</option><option value="forex">Forex</option><option value="crypto">Crypto</option></select></label>
+    </div>
+    <div class="scroll-x"><table class="tbl btable" id="b-table"></table></div>
+    <p class="fine" id="b-note"></p>
+  </main>
+
+  <!-- ===== Formation ===== -->
+  <main class="learn" id="screen-learn" hidden></main>
+</div>
+<div class="minibar" id="minibar" hidden>
+  <div class="mb-info"><span class="mb-px" id="mb-px"></span><span class="mono" id="mb-pnl"></span></div>
+  <button class="btn primary" type="button" id="mb-next">Jour suivant</button>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/lessons.js"></script>
+<script src="js/coach.js"></script>
+<script src="js/board.js"></script>
+<script src="js/app.js"></script>
