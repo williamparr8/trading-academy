@@ -23,6 +23,49 @@
     t: { side: 'buy', type: 'market' }, saveT: null,
   };
   App.prefs.ind = { ...PREFS0.ind, ...App.prefs.ind };
+
+  /* ---------- indicateurs du graphique : liste libre, gardée dans les préférences ---------- */
+  const IND_CATALOG = [
+    { t: 'sma', name: 'Moyenne mobile', desc: 'Moyenne des derniers prix de clôture : lisse la tendance.', def: { n: 20 } },
+    { t: 'ema', name: 'Moyenne mobile exponentielle', desc: 'Comme la moyenne mobile, mais réagit plus vite aux derniers prix.', def: { n: 20 } },
+    { t: 'boll', name: 'Bandes de Bollinger', desc: 'Enveloppe de volatilité autour d’une moyenne.', def: { n: 20, k: 2 } },
+    { t: 'rsi', name: 'RSI', desc: 'Force de la tendance de 0 à 100 : au-dessus de 70 suracheté, sous 30 survendu.', def: { n: 14 } },
+    { t: 'macd', name: 'MACD', desc: 'Écart entre deux moyennes mobiles : lit l’élan du prix.', def: { f: 12, s: 26, g: 9 } },
+    { t: 'atr', name: 'ATR (amplitude moyenne)', desc: 'Taille moyenne d’une barre en prix : utile pour placer un stop à bonne distance.', def: { n: 14 } },
+    { t: 'vol', name: 'Volume', desc: 'Quantité échangée par barre, relative au début de la partie.', def: {} },
+  ];
+  // [clé, libellé, min, max, pas]
+  const IND_PARAMS = {
+    sma: [['n', 'Période', 2, 300, 1]], ema: [['n', 'Période', 2, 300, 1]], boll: [['n', 'Période', 5, 100, 1], ['k', 'Écart', 0.5, 4, 0.5]],
+    rsi: [['n', 'Période', 2, 50, 1]], macd: [['f', 'Rapide', 2, 100, 1], ['s', 'Lente', 3, 200, 1], ['g', 'Signal', 2, 50, 1]], atr: [['n', 'Période', 2, 50, 1]],
+  };
+  const IND_COLORS = ['var(--warn)', 'var(--accent)', 'var(--violet)', 'var(--cyan)', '#e879a6', '#a3b3c4'];
+  function legacyInds(ind) {   // anciennes préférences : une case à cocher par indicateur
+    const k = { ...PREFS0.ind, ...(ind || {}) }, out = [];
+    if (k.vol) out.push({ t: 'vol' });
+    if (k.sma20) out.push({ t: 'sma', n: 20, c: 0 });
+    if (k.sma50) out.push({ t: 'sma', n: 50, c: 1 });
+    if (k.boll) out.push({ t: 'boll', n: 20, k: 2, c: 2 });
+    if (k.rsi) out.push({ t: 'rsi', n: 14, c: 3 });
+    if (k.macd) out.push({ t: 'macd', f: 12, s: 26, g: 9, c: 1 });
+    return out;
+  }
+  function cleanInds(list, legacy) {
+    const out = [];
+    for (const r of (Array.isArray(list) ? list : legacyInds(legacy)).slice(0, 8)) {
+      const cat = r && IND_CATALOG.find((c) => c.t === r.t);
+      if (!cat || (cat.t === 'vol' && out.some((x) => x.t === 'vol'))) continue;
+      const o = { id: 'i' + (out.length + 1) + Math.random().toString(36).slice(2, 5), t: cat.t, c: Number.isInteger(r.c) ? Math.abs(r.c) % 6 : out.length % 6 };
+      for (const [key, , lo, hi, step] of IND_PARAMS[cat.t] || []) {
+        const v = Number(r[key]);
+        o[key] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, step === 1 ? Math.round(v) : v)) : cat.def[key];
+      }
+      if (o.t === 'macd' && o.f >= o.s) o.s = o.f + 1;
+      out.push(o);
+    }
+    return out;
+  }
+  App.prefs.inds = cleanInds(App.prefs.inds, App.prefs.ind);
   const savePrefs = () => store.set(KEY_PREFS, App.prefs);
   App.profile = TA.sanitizeProfile(store.get(KEY_PROFILE));   // niveau et progression, gardés dans ce navigateur
   const saveProfile = () => store.set(KEY_PROFILE, App.profile);
@@ -307,11 +350,10 @@
   function enterGame() {
     show('game');
     if (!window.LightweightCharts) { toast('Le graphique n’a pas pu se charger (connexion ?).', 'err', 8000); return; }
-    if (!App.chart) App.chart = new TA.PriceChart($('#chart'), { onHover: (i) => updateLegend(i) });
-    const noVol = App.g.market === 'forex';   // le forex n'a pas de volume centralisé
-    $('#inds [data-k=vol]').hidden = noVol;
-    App.chart.setGame(App.g, App.st, { ...App.prefs.ind, vol: App.prefs.ind.vol && !noVol });
-    $$('#inds .chip').forEach((c) => c.classList.toggle('on', !!App.prefs.ind[c.dataset.k]));
+    if (!App.chart) App.chart = new TA.PriceChart($('#chart'), chartCallbacks());
+    App.chart.setGame(App.g, App.st, activeInds());
+    $('#ind-panel').hidden = true;
+    renderIndChips(); setToolUI('cursor'); drawSelUI();
     setTimeMode(App.cfg.time, true);
     setSeg($('#tm-speed'), App.prefs.speed);
     $('#pause-fill').checked = App.prefs.pauseFill;
@@ -508,6 +550,7 @@
     }
     $('#t-est').innerHTML = html;
     if (!a.closing) updateSizeBox(o, px, dir);
+    syncTicketLines();
     if (App.tuto) tutoSync();
   }
   function quickQty(p) {
@@ -781,6 +824,111 @@
   }
 
   /* =====================================================================
+     Graphique : indicateurs ajoutables et outils de dessin
+     ===================================================================== */
+  const activeInds = () => {
+    const noVol = App.g && App.g.market === 'forex';   // le forex n'a pas de volume centralisé
+    return App.prefs.inds.filter((x) => !(noVol && x.t === 'vol'));
+  };
+  const indLabel = (x) => ({ sma: `MM ${x.n}`, ema: `MME ${x.n}`, boll: `Bollinger ${x.n}`, rsi: `RSI ${x.n}`, macd: `MACD ${x.f}/${x.s}/${x.g}`, atr: `ATR ${x.n}`, vol: 'Volume' }[x.t] || x.t);
+  function renderIndChips() {
+    $('#ind-chips').innerHTML = activeInds().map((x) => `<span class="chip on" style="--c:${IND_COLORS[x.c % 6]}"><i></i>${esc(indLabel(x))}<button type="button" class="chip-x" data-ind-del="${x.id}" aria-label="Retirer ${esc(indLabel(x))}">×</button></span>`).join('');
+    $('#ind-open').setAttribute('aria-expanded', String(!$('#ind-panel').hidden));
+  }
+  function renderIndPanel() {
+    const act = activeInds(), noVol = App.g && App.g.market === 'forex';
+    $('#ind-active').innerHTML = act.map((x) => {
+      const ps = (IND_PARAMS[x.t] || []).map(([k, lab, lo, hi, step]) => `<label class="ind-p">${lab}<input type="number" inputmode="decimal" min="${lo}" max="${hi}" step="${step}" value="${x[k]}" data-ind="${x.id}" data-p="${k}"></label>`).join('');
+      return `<div class="ind-row"><span class="chip on" style="--c:${IND_COLORS[x.c % 6]}"><i></i>${esc(indLabel(x))}</span>${ps}<button class="btn sm ghost" type="button" data-ind-del="${x.id}">Retirer</button></div>`;
+    }).join('') || '<p class="hint">Aucun indicateur : le graphique ne montre que les bougies.</p>';
+    $('#ind-catalog').innerHTML = IND_CATALOG.filter((c) => !(c.t === 'vol' && (noVol || act.some((x) => x.t === 'vol'))))
+      .map((c) => `<button class="ind-add" type="button" data-ind-add="${c.t}"><b>${esc(c.name)}</b><span class="dim">${esc(c.desc)}</span></button>`).join('');
+  }
+  function applyInds() {
+    savePrefs();
+    if (App.chart && App.g) App.chart.setIndicators(activeInds());
+    renderIndChips(); renderIndPanel();
+  }
+  const freeColor = (list) => { for (let c = 0; c < 6; c++) if (!list.some((x) => (x.c | 0) === c)) return c; return list.length % 6; };
+  function addInd(t) {
+    const cat = IND_CATALOG.find((c) => c.t === t), list = App.prefs.inds;
+    if (!cat) return;
+    if (list.length >= 8) { toast('Maximum 8 indicateurs : retires-en un d’abord.', 'warn'); return; }
+    const o = { id: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4), t, c: freeColor(list), ...cat.def };
+    if (t === 'sma' || t === 'ema') { const used = list.filter((x) => x.t === t).map((x) => x.n); o.n = [20, 50, 100, 200].find((n) => !used.includes(n)) || 20; }
+    list.push(o);
+    applyInds();
+  }
+  function setIndParam(id, key, raw) {
+    const x = App.prefs.inds.find((i) => i.id === id), spec = x && (IND_PARAMS[x.t] || []).find((p) => p[0] === key);
+    if (!x || !spec) return;
+    const v = parseNum(raw);
+    if (v == null || Number.isNaN(v)) { renderIndPanel(); return; }
+    x[key] = Math.min(spec[3], Math.max(spec[2], spec[4] === 1 ? Math.round(v) : v));
+    if (x.t === 'macd' && x.f >= x.s) { if (key === 'f') x.s = x.f + 1; else x.f = x.s - 1; }
+    applyInds();
+  }
+
+  const TOOL_HINT = {
+    cursor: 'Glisse un stop, un objectif ou une ligne pour la déplacer. Clique un tracé pour le sélectionner.',
+    h: 'Clique le prix de ton support ou de ta résistance : la ligne se place d’elle-même au bon endroit.',
+    t: 'Clique le point de départ, puis le second point de ta ligne de tendance.',
+    r: 'Clique deux coins opposés de ta zone de support ou de résistance.',
+    sl: 'Clique le prix de ton stop-loss. Avec une position ouverte, il est appliqué tout de suite.',
+    tp: 'Clique le prix de ton objectif. Avec une position ouverte, il est appliqué tout de suite.',
+    erase: 'Clique un tracé pour l’effacer.',
+  };
+  function setToolUI(t) {
+    $$('#draw-tools [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
+    $('#draw-hint').textContent = TOOL_HINT[t] || '';
+  }
+  const drawSelUI = () => { $('#draw-del').hidden = !(App.chart && App.chart.sel != null); };
+  function eraseDraw(id) {
+    if (!TA.removeDraw(App.st, id)) return;
+    if (App.chart && App.chart.sel === id) App.chart.select(null);
+    saveSoon(); App.chart && App.chart.refresh(App.st); drawSelUI();
+  }
+  // Stop ou objectif posé ou glissé sur le graphique : appliqué à la position ouverte, sinon recopié dans le ticket.
+  function setExitFromChart(kind, price) {
+    const st = App.st, g = App.g, p = Math.round(price * 100) / 100;
+    if (st.pos) {
+      const r = TA.setExits(g, st, kind === 'sl' ? p : st.pos.sl, kind === 'tp' ? p : st.pos.tp);
+      if (r.ok) { toast(r.msg, 'ok'); App.posKey = ''; } else toast(r.error, 'err');
+      afterAction();   // redessine aussi les lignes : en cas de refus, elles reviennent à leur vrai prix
+    } else {
+      $(kind === 'sl' ? '#t-sl' : '#t-tp').value = inp(p);
+      $('#t-err').textContent = '';
+      updateTicket();
+    }
+  }
+  function chartCallbacks() {
+    return {
+      onHover: (i) => updateLegend(i),
+      onDraw: (raw) => {
+        const r2 = (x) => Math.round(x * 100) / 100;   // prix à deux décimales, comme le ticket
+        if (raw.p != null) raw.p = r2(raw.p);
+        if (raw.a) raw.a.p = r2(raw.a.p);
+        if (raw.b) raw.b.p = r2(raw.b.p);
+        const r = TA.addDraw(App.g, App.st, raw);
+        if (!r.ok) { toast(r.error, 'warn'); return; }
+        saveSoon(); App.chart.refresh(App.st); App.chart.select(r.draw.id);
+      },
+      onErase: (id) => eraseDraw(id),
+      onMove: (id, p) => { TA.moveDraw(App.g, App.st, id, Math.round(p * 100) / 100); saveSoon(); App.chart.refresh(App.st); },
+      onExit: (kind, price) => setExitFromChart(kind, price),
+      onTool: (t) => setToolUI(t),
+      onSelect: () => drawSelUI(),
+    };
+  }
+  // Stop et objectif saisis dans le ticket : montrés sur le graphique tant qu'aucune position n'est ouverte.
+  function syncTicketLines() {
+    if (!App.chart || !App.st) return;
+    if (App.st.pos) { App.chart.setTicket(null); return; }
+    const sl = parseNum($('#t-sl').value), tp = parseNum($('#t-tp').value);
+    App.chart.setTicket({ sl: sl > 0 ? sl : null, tp: tp > 0 ? tp : null });
+  }
+
+  /* =====================================================================
      Tutoriel : partie guidée de quelques jours, ni sauvegardée ni comptée
      (le contenu des étapes est dans js/tutorial.js)
      ===================================================================== */
@@ -1002,7 +1150,7 @@
         rendement_pct: +(100 * s.retPct).toFixed(2), acheter_conserver_pct: +(100 * s.bh).toFixed(2), indice_pct: +(100 * (s.home === 'tsx' ? s.tsx : s.sp)).toFixed(2),
         sharpe: s.sharpe == null ? null : +s.sharpe.toFixed(2), drawdown_max_pct: +(100 * s.maxDD).toFixed(2), nb_transactions: s.trades, taux_reussite_pct: s.winRate == null ? null : +(100 * s.winRate).toFixed(0),
         gain_moyen: s.avgWin == null ? null : Math.round(s.avgWin), perte_moyenne: s.avgLoss == null ? null : Math.round(s.avgLoss), frais: Math.round(s.fees),
-        regle_de_risque: st.rules.mode === 'block' ? `obligatoire ${(100 * st.rules.max).toFixed(0)} %` : 'conseillée', levier_max: st.maxLev, infractions: st.disc, constats_du_coach_a_regles: cg.findings.map((f) => f.title),
+        regle_de_risque: st.rules.mode === 'block' ? `obligatoire ${(100 * st.rules.max).toFixed(0)} %` : 'conseillée', levier_max: st.maxLev, infractions: st.disc, niveaux_traces: (st.draw || []).length, tests_des_niveaux: cg.stats.levels, constats_du_coach_a_regles: cg.findings.map((f) => f.title),
         transactions: st.trades.slice(0, 18).map((t) => ({ type: t.kind === 'option' ? 'option' : t.dir === -1 ? 'short' : 'long', barres: t.closeIdx - t.openIdx, net: Math.round(t.net), R: t.r == null ? null : +t.r.toFixed(1), sortie: t.reason,
           emotion: TA.labelOf(TA.EMOTIONS, (t.entries[0] || {}).emotion), raison: TA.labelOf(TA.REASONS, (t.entries[0] || {}).reason), note: t.note || undefined })),
       };
@@ -1364,10 +1512,35 @@
       try { navigator.clipboard.writeText(code).then(ok, () => toast('Code de la partie : ' + code, 'info', 7000)); } catch (err) { toast('Code de la partie : ' + code, 'info', 7000); }
     });
     // graphique
-    $('#inds').addEventListener('click', (e) => {
-      const c = e.target.closest('.chip'); if (!c || !App.chart) return;
-      const k = c.dataset.k; App.prefs.ind[k] = !App.prefs.ind[k]; c.classList.toggle('on', App.prefs.ind[k]);
-      App.chart.setFlags({ [k]: App.prefs.ind[k] }); savePrefs();
+    // graphique : indicateurs et outils de dessin
+    document.addEventListener('click', (e) => {
+      const add = e.target.closest('[data-ind-add]'); if (add) { addInd(add.dataset.indAdd); return; }
+      const del = e.target.closest('[data-ind-del]');
+      if (del) { App.prefs.inds = App.prefs.inds.filter((x) => x.id !== del.dataset.indDel); applyInds(); return; }
+      if (e.target.closest('#ind-open')) { const p = $('#ind-panel'); p.hidden = !p.hidden; if (!p.hidden) renderIndPanel(); renderIndChips(); return; }
+      if (e.target.closest('#ind-close')) { $('#ind-panel').hidden = true; renderIndChips(); return; }
+      if (!$('#ind-panel').hidden && !e.target.closest('#ind-panel')) { $('#ind-panel').hidden = true; renderIndChips(); }   // clic ailleurs : le panneau se referme
+      const tool = e.target.closest('#draw-tools [data-tool]');
+      if (tool && App.chart) {
+        const t = App.chart.tool === tool.dataset.tool ? 'cursor' : tool.dataset.tool;
+        App.chart.setTool(t); setToolUI(t);
+        return;
+      }
+      if (e.target.closest('#draw-del') && App.chart && App.chart.sel != null) { eraseDraw(App.chart.sel); return; }
+      const clr = e.target.closest('#draw-clear');
+      if (clr && App.st) {
+        if (!clr.dataset.armed) { clr.dataset.armed = '1'; clr.textContent = 'Confirmer : tout effacer'; setTimeout(() => { delete clr.dataset.armed; clr.textContent = 'Tout effacer'; }, 4000); return; }
+        delete clr.dataset.armed; clr.textContent = 'Tout effacer';
+        if (TA.clearDraws(App.st)) { App.chart.select(null); saveSoon(); App.chart.refresh(App.st); drawSelUI(); }
+      }
+    });
+    $('#ind-panel').addEventListener('change', (e) => {
+      const i = e.target.closest('input[data-ind]'); if (i) setIndParam(i.dataset.ind, i.dataset.p, i.value);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (App.screen !== 'game' || !App.chart || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      if (e.key === 'Escape') { App.chart.setTool('cursor'); App.chart.select(null); setToolUI('cursor'); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && App.chart.sel != null) { e.preventDefault(); eraseDraw(App.chart.sel); }
     });
     $('#z-in').onclick = () => App.chart && App.chart.zoom(0.7);
     $('#z-out').onclick = () => App.chart && App.chart.zoom(1.4);

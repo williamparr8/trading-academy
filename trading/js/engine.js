@@ -180,14 +180,14 @@
     }
     return o;
   }
-  function macd(c) {
-    const e12 = ema(c, 12), e26 = ema(c, 26), m = nanArr(c.length);
+  function macd(c, fast = 12, slow = 26, sig = 9) {
+    const e12 = ema(c, fast), e26 = ema(c, slow), m = nanArr(c.length);
     for (let i = 0; i < c.length; i++) if (!isNaN(e26[i])) m[i] = e12[i] - e26[i];
     const first = m.findIndex((x) => !isNaN(x));
-    const sig = first < 0 ? nanArr(c.length) : ema(m, 9, first);
+    const sg = first < 0 ? nanArr(c.length) : ema(m, sig, first);
     const hist = nanArr(c.length);
-    for (let i = 0; i < c.length; i++) if (!isNaN(sig[i])) hist[i] = m[i] - sig[i];
-    return { line: m, signal: sig, hist };
+    for (let i = 0; i < c.length; i++) if (!isNaN(sg[i])) hist[i] = m[i] - sg[i];
+    return { line: m, signal: sg, hist };
   }
   function boll(c, n = 20, k = 2) {
     const mid = sma(c, n), up = nanArr(c.length), lo = nanArr(c.length);
@@ -199,7 +199,27 @@
     }
     return { mid, up, lo };
   }
+  // ATR de Wilder : amplitude moyenne vraie d'une barre sur n barres (volatilité exprimée en prix).
+  function atr(h, l, c, n = 14) {
+    const o = nanArr(c.length); let s = 0;
+    for (let i = 1; i < c.length; i++) {
+      const tr = Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1]));
+      if (i < n) s += tr;
+      else if (i === n) { s += tr; o[i] = s / n; }
+      else o[i] = (o[i - 1] * (n - 1) + tr) / n;
+    }
+    return o;
+  }
   TA.indicators = (c) => ({ sma20: sma(c, 20), sma50: sma(c, 50), boll: boll(c), rsi: rsi(c), macd: macd(c) });
+  TA.ind = { sma, ema, rsi, macd, boll, atr };   // indicateurs à paramètres libres, utilisés par le graphique
+  // Amplitude moyenne d'une barre à l'index i (sans regarder après i) ; repli sur l'amplitude haut-bas si l'historique manque.
+  TA.atrAt = (g, i) => {
+    const a = g.atr14 && g.atr14[i];
+    if (a > 0) return a;
+    let s = 0, n = 0;
+    for (let k = Math.max(0, i - 13); k <= i; k++) { s += g.h[k] - g.l[k]; n++; }
+    return n && s > 0 ? s / n : g.c[i] * 0.01;
+  };
 
   // Construit la partie : barres ramenées à un prix de départ de 100 $, volume relatif, indicateurs.
   // Mode Live : échelle en puissance de 10 qui ramène le prix entre 100 et 1000 (quantités entières, prix réel = prix ÷ k).
@@ -218,15 +238,15 @@
     let vs = 0;
     for (let i = startIdx - CFG.CTX; i <= startIdx; i++) vs += raw.v[i];
     const vm = vs / (CFG.CTX + 1) || 1;
-    const c = mk(raw.c);
+    const c = mk(raw.c), hi = mk(raw.h), lo = mk(raw.l);
     const u = TA.STYLES[style];
     return {
       meta: { s: data.s, n: data.n, x: data.x, sec: data.sec, cur: data.cur },
       market: data.mk || 'stock', live: live ? { k: live.k } : null,
       style, unit: u.unit, startIdx, endIdx, N, t: raw.t,
-      o: mk(raw.o), h: mk(raw.h), l: mk(raw.l), c,
+      o: mk(raw.o), h: hi, l: lo, c,
       v: Float64Array.from(raw.v, (x) => x / vm),
-      ind: TA.indicators(c),
+      ind: TA.indicators(c), atr14: atr(hi, lo, c, 14),
     };
   };
 
@@ -437,6 +457,7 @@
       ruined: false,       // compte épuisé : la partie s'arrête
       opts: [],            // options détenues (achats de calls et de puts)
       disc: { noStop: 0, widened: 0, overRisk: 0 },   // entorses à la discipline (possibles seulement en mode conseillé)
+      draw: [],            // tracés du joueur sur le graphique : lignes, tendances, zones (voir TA.addDraw)
     };
   };
 
@@ -473,7 +494,7 @@
     p.qty += qty; p.fees += fee; p.lastEntryIdx = st.idx;
     if (o && o.sl != null) p.sl = o.sl;
     if (o && o.tp != null) p.tp = o.tp;
-    p.entries.push({ idx: st.idx, qty, px, reason: j.reason, emotion: j.emotion, note: j.note });
+    p.entries.push({ idx: st.idx, qty, px, reason: j.reason, emotion: j.emotion, note: j.note, sl: p.sl, tp: p.tp });
     if (p.sl != null) p.risk0 += Math.max(0, dir * qty * (px - p.sl)) + 2 * fee;   // base du multiple R
     st.fills.push({ idx: st.idx, side: dir === 1 ? 'buy' : 'sell', qty, px });
     return { qty, px, fee };
@@ -811,7 +832,7 @@
     if (!p) { p = { id: st.nextId++, kind: o.kind, strike: o.strike, expIdx: o.expIdx, qty: 0, avg: 0, fees: 0, openIdx: i, entries: [], risk0: 0 }; st.opts.push(p); }
     p.avg = (p.avg * p.qty + q.ask * qty) / (p.qty + qty);
     p.qty += qty; p.fees += fee; p.risk0 += risk;
-    p.entries.push({ idx: i, qty, px: q.ask, reason: j.reason, emotion: j.emotion, note: j.note });
+    p.entries.push({ idx: i, qty, px: q.ask, reason: j.reason, emotion: j.emotion, note: j.note, sl: null, tp: null });
     st.log.push({ i, a: 'opt', k: o.kind, s: o.strike, e: o.expIdx, q: qty, j });
     return { ok: true, msg: `Acheté ${qty} contrat${qty > 1 ? 's' : ''} ${o.kind === 'call' ? 'call' : 'put'} ${F2(o.strike)} à ${money(q.ask)} la prime (coût ${money(risk)})` };
   };
@@ -874,6 +895,44 @@
   /* ---------- Sauvegarde : validation d'un fichier importé ---------- */
   const fin = (x) => typeof x === 'number' && Number.isFinite(x);
   const optNum = (x) => (x == null ? null : fin(x) ? x : NaN);
+
+  /* ---------- Tracés du joueur : ligne horizontale (k 'h'), tendance ('t'), zone ('r') ---------- */
+  // Un tracé garde la barre où il a été posé (at) : le coach ne juge une entrée que d'après les tracés déjà faits.
+  const DRAW_MAX = 40;
+  function cleanDraw(g, d, st) {
+    if (!d || typeof d !== 'object') return null;
+    const okI = (i) => Number.isInteger(i) && i >= 0 && i <= st.idx;   // jamais dans le futur
+    const okP = (p) => fin(p) && p > 0 && p < 1e9;
+    const at = Number.isInteger(d.at) && d.at >= 0 && d.at <= st.idx ? d.at : st.idx;
+    if (d.k === 'h') return okP(d.p) ? { k: 'h', p: d.p, at } : null;
+    if ((d.k === 't' || d.k === 'r') && d.a && d.b && okI(d.a.i) && okI(d.b.i) && okP(d.a.p) && okP(d.b.p)) {
+      if (d.k === 't' && d.a.i === d.b.i) return null;
+      return { k: d.k, a: { i: d.a.i, p: d.a.p }, b: { i: d.b.i, p: d.b.p }, at };
+    }
+    return null;
+  }
+  TA.addDraw = function (g, st, raw) {
+    if (st.closed) return { ok: false, error: 'La partie est terminée.' };
+    if (st.draw.length >= DRAW_MAX) return { ok: false, error: `Maximum ${DRAW_MAX} tracés : efface-en avant d’en ajouter.` };
+    const d = cleanDraw(g, { ...raw, at: st.idx }, st);
+    if (!d) return { ok: false, error: 'Tracé impossible à cet endroit.' };
+    d.id = st.nextId++;
+    st.draw.push(d);
+    return { ok: true, draw: d };
+  };
+  TA.removeDraw = function (st, id) {
+    const n = st.draw.length;
+    st.draw = st.draw.filter((d) => d.id !== id);
+    return st.draw.length < n;
+  };
+  // Déplace une ligne horizontale (le seul tracé qu'on glisse) ; sa barre de création ne change pas.
+  TA.moveDraw = function (g, st, id, p) {
+    const d = st.draw.find((x) => x.id === id);
+    if (!d || d.k !== 'h' || !(fin(p) && p > 0 && p < 1e9)) return false;
+    d.p = p;
+    return true;
+  };
+  TA.clearDraws = function (st) { const n = st.draw.length; st.draw = []; return n; };
   // Reconstruit un état propre à partir d'un objet quelconque ; lève une erreur s'il est incohérent.
   TA.sanitizeState = function (raw, g) {
     const bad = () => { throw new Error('Fichier de sauvegarde invalide.'); };
@@ -894,7 +953,7 @@
       const out = [];
       for (const e of Array.isArray(arr) ? arr.slice(0, 200) : []) {
         if (!e || !Number.isInteger(e.idx) || !fin(e.qty) || !fin(e.px)) bad();
-        out.push({ idx: e.idx, qty: e.qty, px: e.px, reason: inList(TA.REASONS, e.reason), emotion: inList(TA.EMOTIONS, e.emotion), note: String(e.note || '').slice(0, 160) });
+        out.push({ idx: e.idx, qty: e.qty, px: e.px, reason: inList(TA.REASONS, e.reason), emotion: inList(TA.EMOTIONS, e.emotion), note: String(e.note || '').slice(0, 160), sl: fin(e.sl) && e.sl > 0 ? e.sl : null, tp: fin(e.tp) && e.tp > 0 ? e.tp : null });
       }
       return out;
     };
@@ -934,6 +993,11 @@
       st.fills.push({ idx: f.idx, side: f.side, qty: f.qty, px: f.px });
     }
     if (Array.isArray(raw.log)) st.log = raw.log.slice(0, 2000).filter((e) => e && typeof e === 'object');
+    st.draw = [];   // les tracés invalides sont écartés sans faire échouer la lecture
+    for (const d of Array.isArray(raw.draw) ? raw.draw.slice(0, DRAW_MAX) : []) {
+      const c = cleanDraw(g, d, st);
+      if (c) { c.id = Number.isInteger(d.id) && d.id > 0 ? d.id : st.nextId++; st.draw.push(c); }
+    }
     return st;
   };
 })();

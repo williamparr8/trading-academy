@@ -13,6 +13,23 @@
   const WARN = 0, GOOD = 1, INFO = 2;
   const order = { warn: WARN, good: GOOD, info: INFO };
 
+  // Niveaux tracés par le joueur et déjà connus à la barre idx : lignes, zones, tendances prolongées jusqu'à idx.
+  function levelsAt(st, idx) {
+    const out = [];
+    for (const d of st.draw || []) {
+      if (d.at > idx) continue;   // posé plus tard : le joueur ne le connaissait pas à ce moment
+      if (d.k === 'h') out.push({ k: 'h', lo: d.p, hi: d.p });
+      else if (d.k === 'r') out.push({ k: 'r', lo: Math.min(d.a.p, d.b.p), hi: Math.max(d.a.p, d.b.p) });
+      else if (d.k === 't' && d.a.i !== d.b.i) {
+        const p = d.a.p + ((d.b.p - d.a.p) * (idx - d.a.i)) / (d.b.i - d.a.i);
+        if (p > 0) out.push({ k: 't', lo: p, hi: p });
+      }
+    }
+    return out;
+  }
+  TA.levelsAt = levelsAt;
+  const levelName = (l, role) => (l.k === 'r' ? `ta zone de ${role}` : l.k === 't' ? 'ta ligne de tendance' : role === 'support' ? 'ton support' : 'ta résistance');
+
   TA.optLabel = (t) => (t && t.kind === 'option' ? `${t.opt.kind === 'call' ? 'Call' : 'Put'} ${F.num(t.opt.strike, 2)}` : '');
 
   TA.coachTrade = function (g, st, t) {
@@ -43,6 +60,41 @@
     if ((t.entries || []).some((e) => !e.reason || !e.emotion)) {
       push('journal', 'info', 'Journal incomplet', 'Sans la raison et l’émotion de l’entrée, ce trade ne t’apprend presque rien. Quelques secondes suffisent.');
     }
+    if (!isOpt && t.reason !== 'Liquidation') {
+      const e0 = (t.entries || [])[0] || {}, long = t.dir !== -1, ent = t.entry, atr = TA.atrAt(g, t.openIdx);
+      const sl0 = e0.sl > 0 ? e0.sl : null, tp0 = e0.tp > 0 ? e0.tp : null, lv = levelsAt(st, t.openIdx);
+      const tol = 0.1 * atr;
+      // du côté du stop (support pour un achat, résistance pour une vente) et du côté de l'objectif
+      const behind = lv.filter((l) => (long ? l.hi <= ent + tol : l.lo >= ent - tol)).sort((a, b) => (long ? b.hi - a.hi : a.lo - b.lo))[0];
+      const ahead = lv.filter((l) => (long ? l.lo >= ent - tol : l.hi <= ent + tol)).sort((a, b) => (long ? a.lo - b.lo : b.hi - a.hi))[0];
+      const roleB = long ? 'support' : 'résistance', roleA = long ? 'résistance' : 'support';
+      if (behind && sl0 != null) {
+        const edge = long ? behind.lo : behind.hi, near = Math.abs(ent - edge);
+        const past = long ? edge - sl0 : sl0 - edge;   // > 0 : le stop est de l'autre côté du niveau
+        const who = levelName(behind, roleB);
+        if (near <= 6 * atr) {
+          if (past > 0 && past <= 1.5 * atr) push('stoplevel', 'good', `Stop placé juste au-delà de ${who}`, `Ton stop est ${long ? 'sous' : 'au-dessus de'} le niveau que tu avais tracé, avec une marge raisonnable : si le niveau cède tu sors, et s’il tient, le bruit du marché ne te sort pas.`);
+          else if (past <= 0) push('stoplevel', 'info', `Stop ${long ? 'au-dessus de' : 'en dessous de'} ${who}`, `Si le niveau tient, le prix peut rebondir juste là et toucher ton stop avant que ton idée ait eu raison. Place le stop de l’autre côté du niveau, avec une marge d’une demi à une amplitude moyenne de barre (environ ${F.money(atr)} ici).`);
+          else if (past > 3 * atr) push('stopfar', 'info', `Stop très loin de ${who}`, `Entre ton niveau et ton stop, il y a ${F.money(past)} (${F.num(past / atr, 1)} fois l’amplitude moyenne d’une barre). Si le niveau casse, tu perds bien plus que nécessaire : rapproche le stop juste de l’autre côté.`);
+        }
+      }
+      if (ahead) {
+        const space = long ? ahead.lo - ent : ent - ahead.hi, risk = sl0 != null ? Math.abs(ent - sl0) : null, who = levelName(ahead, roleA);
+        if (space > -tol && space < atr && (risk == null || space < risk)) {
+          push('obstacle', 'warn', `Entrée tout près de ${who}`, `Il restait ${F.money(Math.max(0, space))} avant ce niveau${risk != null ? `, contre un risque de ${F.money(risk)}` : ''}. Un niveau proche limite le gain possible : attends que le prix le franchisse, ou entre plus ${long ? 'bas' : 'haut'}.`);
+        }
+        if (tp0 != null) {
+          const far = long ? ahead.hi : ahead.lo, beyond = long ? tp0 - far : far - tp0, before = long ? ahead.lo - tp0 : tp0 - ahead.hi;
+          if (beyond > 0.25 * atr) push('targetbeyond', 'info', `Objectif au-delà de ${who}`, 'Le prix doit d’abord franchir ce niveau pour atteindre ton objectif. Une sortie partielle au niveau, ou un objectif juste avant, rend le plan plus réaliste.');
+          else if (before >= 0 && before <= 0.75 * atr) push('targetlevel', 'good', `Objectif placé juste avant ${who}`, 'Tu vises un prix que le marché a des chances d’atteindre avant l’obstacle : c’est ainsi qu’on place un objectif réaliste.');
+        }
+      }
+      // la raison notée parle d'un niveau : en avait-il un de tracé près de l'entrée ?
+      const r0 = (t.entries || []).map((e) => e.reason).find((r) => ['breakout', 'support', 'breakdown', 'reject'].includes(r));
+      if (r0 && !lv.some((l) => ent >= l.lo - 1.5 * atr && ent <= l.hi + 1.5 * atr)) {
+        push('reasonlevel', 'info', 'Entrée sur un niveau que tu n’avais pas tracé', `Ton journal dit « ${TA.labelOf(TA.REASONS, r0)} », mais aucun niveau tracé n’était proche de ton entrée. Trace-le avant d’entrer : un niveau écrit sur le graphique est un plan, un niveau « dans la tête » est une impression.`);
+      }
+    }
     if (isOpt) {
       if (t.reason === 'Expirée sans valeur') push('optworthless', 'info', 'Prime perdue en entier', 'L’option a expiré sans valeur : le temps joue contre l’acheteur. Choisis une échéance plus longue ou un prix d’exercice plus proche du prix actuel quand tu n’attends pas un mouvement rapide.');
       else if (t.reason.startsWith('Échéance') && t.net > 0) push('optitm', 'good', 'Option gardée jusqu’à l’échéance, dans la monnaie', 'Tu as encaissé la valeur intrinsèque. Compare ce résultat à une vente anticipée : parfois la valeur temps vaut la peine d’être récupérée avant.');
@@ -70,6 +122,34 @@
     return m;
   }
 
+  // Les lignes et zones tracées ont-elles tenu ? Un épisode commence quand le prix touche le niveau (à 0,3 amplitude près),
+  // « tenu » si les cinq barres suivantes ne clôturent pas au-delà, « cédé » sinon.
+  function levelStats(g, st) {
+    const out = { n: 0, tested: 0, held: 0, broke: 0 };
+    for (const d of st.draw || []) {
+      if (d.k === 't') continue;   // une tendance bouge avec le temps : on juge seulement lignes et zones
+      const lo = d.k === 'h' ? d.p : Math.min(d.a.p, d.b.p), hi = d.k === 'h' ? d.p : Math.max(d.a.p, d.b.p);
+      out.n++;
+      const side = g.c[d.at] >= hi ? 1 : g.c[d.at] <= lo ? -1 : 0;   // 1 : le prix était au-dessus (support), -1 : en dessous (résistance)
+      if (side === 0) continue;
+      const end = st.idx, away = (k) => (side === 1 ? g.l[k] > hi + TA.atrAt(g, k) : g.h[k] < lo - TA.atrAt(g, k));
+      let k = d.at + 1;
+      while (k <= end) {
+        const tol = 0.3 * TA.atrAt(g, k);
+        if (!(side === 1 ? g.l[k] <= hi + tol : g.h[k] >= lo - tol)) { k++; continue; }
+        out.tested++;
+        let broke = false;
+        for (let j = k; j <= Math.min(end, k + 5); j++) {
+          if (side === 1 ? g.c[j] < lo - 0.5 * TA.atrAt(g, j) : g.c[j] > hi + 0.5 * TA.atrAt(g, j)) { broke = true; break; }
+        }
+        if (broke) out.broke++; else out.held++;
+        k++;
+        while (k <= end && !away(k)) k++;   // on attend que le prix s'éloigne avant de compter un nouvel épisode
+      }
+    }
+    return out;
+  }
+
   TA.coachGame = function (g, st, sum) {
     const ts = st.trades, out = [], push = (id, level, title, text) => out.push({ id, level, title, text });
     const wins = ts.filter((t) => t.net > 0), losses = ts.filter((t) => t.net <= 0);
@@ -77,7 +157,7 @@
     const avgLoss = losses.length ? losses.reduce((a, t) => a + t.net, 0) / losses.length : 0;
     const payoff = avgLoss < 0 ? avgWin / -avgLoss : null, winRate = ts.length ? wins.length / ts.length : null;
     const fees = ts.reduce((a, t) => a + t.fees, 0), net = ts.reduce((a, t) => a + t.net, 0);
-    const stats = { n: ts.length, winRate, avgWin, avgLoss, payoff, fees, net, expectancy: ts.length ? net / ts.length : 0 };
+    const stats = { n: ts.length, winRate, avgWin, avgLoss, payoff, fees, net, expectancy: ts.length ? net / ts.length : 0, levels: levelStats(g, st) };
     if (!ts.length) {
       push('none', 'info', 'Aucune transaction', 'Rester en dehors du marché est une décision, mais on n’apprend à trader qu’en pratiquant. Essaie une petite taille avec un stop serré pour voir comment tes décisions se comportent.');
       return { findings: out, stats };
@@ -132,6 +212,14 @@
     if (early) push('early', 'warn', `${early} sortie${early > 1 ? 's' : ''} trop tôt`, `Après ta sortie, le prix a continué dans ton sens d’environ ${pct1(earlyMove / early)} en moyenne. Un stop suiveur ou une sortie en deux temps te laisse profiter de la suite sans tout risquer.`);
     if (gaveBack) push('gaveback', 'warn', `${gaveBack} gain${gaveBack > 1 ? 's' : ''} rendu${gaveBack > 1 ? 's' : ''} en grande partie`, 'Tu étais bien en gain, puis plus de la moitié du gain maximal s’est évaporée avant la sortie. Remonter ton stop à mesure que le prix avance protège ce que tu as gagné.');
     if (whipsaw) push('whipsaw', 'info', `${whipsaw} stop touché${whipsaw > 1 ? 's' : ''} avant que le prix reparte`, 'Le stop a été touché, puis le prix est revenu au-delà de ton entrée dans les dix barres suivantes. Soit le stop était trop serré pour la volatilité, soit c’est le prix normal d’une protection : compare avec l’amplitude moyenne des barres.');
+    // niveaux tracés
+    const L = stats.levels;
+    if (!(st.draw || []).length && ts.length >= 2) push('nolevels', 'info', 'Aucun niveau tracé', 'Avec l’outil « Support / résistance », marque les prix où le marché a déjà réagi avant d’entrer : tes stops et tes objectifs auront alors une raison d’être, et le coach pourra les évaluer.');
+    else if (L.n > 0) {
+      if (L.tested >= 2 && L.held / L.tested >= 0.6) push('levels', 'good', `Tes niveaux ont tenu (${L.held} sur ${L.tested})`, 'Tu lis bien les endroits où le marché réagit. Continue de placer tes stops de l’autre côté de ces niveaux.');
+      else if (L.tested >= 2 && L.held / L.tested <= 0.4) push('levels', 'info', `Tes niveaux ont souvent cédé (${L.broke} sur ${L.tested})`, 'Une ligne exacte est rarement respectée au centime : trace plutôt une zone qui couvre les mèches, ou attends une clôture de l’autre côté avant de conclure que le niveau tient.');
+      else if (L.tested === 0) push('levels', 'info', 'Tes niveaux n’ont pas été testés', 'Le prix n’est jamais revenu sur les niveaux que tu as tracés pendant la partie : ils restent à valider.');
+    }
     out.sort((a, b) => order[a.level] - order[b.level]);
     return { findings: out.slice(0, 7), stats };
   };
@@ -149,6 +237,13 @@
       niveau: (TA.LEVELS[(st.level || 1) - 1] || {}).name,
       journal: (t.entries || []).map((e) => ({ raison: TA.labelOf(TA.REASONS, e.reason), emotion: TA.labelOf(TA.EMOTIONS, e.emotion), note: e.note || null })),
       note_apres_coup: t.note || null,
+      ...(t.kind === 'option' ? {} : (() => {
+        const e0 = (t.entries || [])[0] || {}, atr = TA.atrAt(g, t.openIdx), r2 = (x) => +x.toFixed(2);
+        return {
+          stop_initial: e0.sl > 0 ? r2(e0.sl) : null, objectif_initial: e0.tp > 0 ? r2(e0.tp) : null, prix_entree: r2(t.entry), amplitude_moyenne_barre: r2(atr),
+          niveaux_traces_connus_a_l_entree: TA.levelsAt(st, t.openIdx).slice(0, 6).map((l) => ({ type: l.k === 'h' ? 'ligne' : l.k === 'r' ? 'zone' : 'tendance', bas: r2(l.lo), haut: r2(l.hi) })),
+        };
+      })()),
       constats_du_coach_a_regles: TA.coachTrade(g, st, t).map((f) => f.title),
       ...(reveal ? { actif: g.meta.s, titre: g.meta.n } : {}),
     };

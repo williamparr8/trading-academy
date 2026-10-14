@@ -23,7 +23,7 @@
     },
     {
       id: 'stop', title: '1. Fixe ta limite de perte', target: ['#f-exits'],
-      text: (c) => `Avant d’acheter, décide à quel prix tu abandonnes. Écris <b>${stopSuggestion(c)}</b> dans « Stop-loss ». Si le prix tombe là, la plateforme te sort toute seule : ta perte maximale est connue d’avance.`,
+      text: (c) => `Avant d’acheter, décide à quel prix tu abandonnes. Écris <b>${stopSuggestion(c)}</b> dans « Stop-loss ». Si le prix tombe là, la plateforme te sort toute seule : ta perte maximale est connue d’avance. Tu peux aussi cliquer l’outil <b>Stop-loss</b> au-dessus du graphique, puis le prix voulu.`,
       when: (c) => c.sl != null && c.sl >= c.last * 0.8 && c.sl <= c.last * 0.995,
       ok: 'Stop placé : ta perte maximale est connue d’avance.',
     },

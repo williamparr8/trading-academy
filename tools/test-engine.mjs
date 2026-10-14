@@ -968,5 +968,126 @@ function synth(bars) {
   ok('tutoriel : étapes, textes, taille à 1 % du compte, trois jours puis fermeture, résultat en R');
 }
 
+// 13. Tracés du joueur, indicateurs à paramètres libres, ATR et coach des niveaux
+{
+  const J = { reason: 'trend', emotion: 'calm', note: '' };
+  // historique avant le départ avec des barres de 2 de haut : l'ATR vaut 2 dès la première barre jouée
+  const synthA = (bars) => { const g = synth(bars); for (let i = 0; i < 100; i++) { g.h[i] = 101; g.l[i] = 99; } return g; };
+  const same = (a, b) => a.length === b.length && a.every((v, i) => (Number.isNaN(v) && Number.isNaN(b[i])) || Math.abs(v - b[i]) < 1e-9);
+  // indicateurs libres : mêmes valeurs que les indicateurs fixes, et paramètres pris en compte
+  const gI = TA.buildGame(read('MSFT'), TA.planGame('DRW1-0001', 'random', 'swing', 60, index), 'swing', 60);
+  assert(same(TA.ind.sma(gI.c, 20), gI.ind.sma20) && same(TA.ind.macd(gI.c).line, gI.ind.macd.line) && same(TA.ind.macd(gI.c, 12, 26, 9).hist, gI.ind.macd.hist));
+  assert(same(TA.ind.atr(gI.h, gI.l, gI.c, 14), gI.atr14));
+  const m5 = TA.ind.macd(gI.c, 5, 13, 4);
+  assert(!same(m5.line, gI.ind.macd.line) && !Number.isNaN(m5.line[20]));
+  const e10 = TA.ind.ema(gI.c, 10);
+  assert(Number.isNaN(e10[8]) && !Number.isNaN(e10[9]));
+  assert(TA.atrAt(gI, gI.startIdx) > 0 && TA.atrAt(gI, gI.startIdx) < gI.c[gI.startIdx] * 0.1);
+  // l'ATR d'une barre de 100 de haut-bas sur fond plat vaut 2 (repli sans historique)
+  const flat = (n) => Array.from({ length: n }, () => [100, 101, 99, 100]);
+  assert(Math.abs(TA.atrAt(synthA(flat(5)), 100) - 2) < 1e-9);
+
+  // API des tracés
+  const g = synthA(flat(30));
+  const st = TA.newState(g, 'soft', 2);
+  const h = TA.addDraw(g, st, { k: 'h', p: 95 });
+  assert(h.ok && h.draw.k === 'h' && h.draw.at === st.idx && st.draw.length === 1);
+  assert(!TA.addDraw(g, st, { k: 'h', p: -3 }).ok && !TA.addDraw(g, st, { k: 'h', p: NaN }).ok && !TA.addDraw(g, st, { k: 'x', p: 95 }).ok);
+  assert(!TA.addDraw(g, st, { k: 't', a: { i: 100, p: 90 }, b: { i: 100, p: 95 } }).ok, 'tendance verticale');
+  assert(!TA.addDraw(g, st, { k: 't', a: { i: 90, p: 90 }, b: { i: 110, p: 95 } }).ok, 'pas de tracé dans le futur');
+  const tl = TA.addDraw(g, st, { k: 't', a: { i: 90, p: 98 }, b: { i: 100, p: 100 } });
+  const zn = TA.addDraw(g, st, { k: 'r', a: { i: 95, p: 104 }, b: { i: 100, p: 102 } });
+  assert(tl.ok && zn.ok && new Set(st.draw.map((d) => d.id)).size === 3);
+  assert(TA.moveDraw(g, st, h.draw.id, 96) && st.draw[0].p === 96 && !TA.moveDraw(g, st, tl.draw.id, 99) && !TA.moveDraw(g, st, h.draw.id, 0));
+  // aller-retour de sauvegarde, tracés falsifiés écartés, ancienne sauvegarde sans tracés
+  const raw = JSON.parse(JSON.stringify(st));
+  raw.draw.push({ id: 99, k: 'h', p: 'beaucoup' }, null, { id: 98, k: 'r', a: { i: 500, p: 1 }, b: { i: 1, p: 1 } }, { id: 97, k: '<script>', p: 5 });
+  const back = TA.sanitizeState(raw, g);
+  assert.deepEqual(back.draw, st.draw);
+  delete raw.draw;
+  assert.deepEqual(TA.sanitizeState(raw, g).draw, []);
+  for (let k = 0; k < 60; k++) TA.addDraw(g, st, { k: 'h', p: 80 + k });
+  assert(st.draw.length === 40 && !TA.addDraw(g, st, { k: 'h', p: 70 }).ok, 'maximum de tracés');
+  assert(TA.removeDraw(st, h.draw.id) && st.draw.length === 39 && !TA.removeDraw(st, 123456));
+  assert(TA.clearDraws(st) === 39 && st.draw.length === 0);
+
+  // le stop et l'objectif de chaque entrée sont gardés, et survivent à la sauvegarde
+  const g2 = synthA(flat(30)), s2 = TA.newState(g2, 'soft', 2);
+  assert(TA.submit(g2, s2, { side: 'buy', type: 'market', qty: 10, sl: 94, tp: 110, j: { reason: 'support', emotion: 'calm', note: '' } }).ok);
+  assert(s2.pos.entries[0].sl === 94 && s2.pos.entries[0].tp === 110);
+  const back2 = TA.sanitizeState(JSON.parse(JSON.stringify(s2)), g2);
+  assert.deepEqual(back2.pos.entries, s2.pos.entries);
+
+  // coach : stops et objectifs jugés par rapport aux niveaux tracés AVANT l'entrée
+  const play = (setup, order, bars = flat(30)) => {
+    const gg = synthA(bars), ss = TA.newState(gg, 'soft', 2);
+    setup(gg, ss);
+    assert(TA.submit(gg, ss, { side: 'buy', type: 'market', qty: 10, j: { reason: 'trend', emotion: 'calm', note: '' }, ...order }).ok);
+    TA.advance(gg, ss); TA.advance(gg, ss);
+    assert(TA.submit(gg, ss, { side: 'sell', type: 'market', qty: 10 }).ok);
+    return { g: gg, st: ss, t: ss.trades[0], found: TA.coachTrade(gg, ss, ss.trades[0]) };
+  };
+  const ids = (r) => r.found.map((x) => x.id + ':' + x.level);
+  const drawH = (p) => (gg, ss) => TA.addDraw(gg, ss, { k: 'h', p });
+  // support à 95, stop à 94 : juste en dessous
+  assert(ids(play(drawH(95), { sl: 94 })).includes('stoplevel:good'));
+  // stop à 96 : au-dessus du support
+  assert(ids(play(drawH(95), { sl: 96 })).includes('stoplevel:info'));
+  // stop très loin sous le support
+  assert(ids(play(drawH(95), { sl: 80 })).includes('stopfar:info'));
+  // résistance à 101 juste au-dessus d'une entrée à ~100 avec un risque de 6 : peu de place
+  assert(ids(play(drawH(101), { sl: 94 })).includes('obstacle:warn'));
+  // objectif au-delà d'une résistance, puis objectif juste avant
+  assert(ids(play(drawH(105), { sl: 94, tp: 112 })).includes('targetbeyond:info'));
+  assert(ids(play(drawH(105), { sl: 94, tp: 104.5 })).includes('targetlevel:good'));
+  // raison « support » sans aucun niveau tracé
+  const nolvl = play(() => {}, { sl: 94, j: { reason: 'support', emotion: 'calm', note: '' } });
+  assert(ids(nolvl).includes('reasonlevel:info'));
+  // aucune consigne liée aux niveaux quand le tracé vient après l'entrée (pas de regard vers l'avenir)
+  const late = (() => {
+    const gg = synthA(flat(30)), ss = TA.newState(gg, 'soft', 2);
+    assert(TA.submit(gg, ss, { side: 'buy', type: 'market', qty: 10, sl: 94, j: J }).ok);
+    TA.advance(gg, ss);
+    TA.addDraw(gg, ss, { k: 'h', p: 95 }); TA.addDraw(gg, ss, { k: 'h', p: 101 });
+    assert(TA.submit(gg, ss, { side: 'sell', type: 'market', qty: 10 }).ok);
+    return TA.coachTrade(gg, ss, ss.trades[0]).map((x) => x.id);
+  })();
+  assert(!late.some((id) => ['stoplevel', 'stopfar', 'obstacle', 'targetbeyond', 'targetlevel'].includes(id)), late.join());
+  // vente à découvert : miroir (résistance au-dessus, stop de l'autre côté)
+  const shortG = synthA(flat(30)), shortS = TA.newState(shortG, 'soft', 2);
+  TA.addDraw(shortG, shortS, { k: 'h', p: 105 });
+  assert(TA.submit(shortG, shortS, { side: 'sell', type: 'market', qty: 10, sl: 106, j: J }).ok);
+  TA.advance(shortG, shortS);
+  assert(TA.submit(shortG, shortS, { side: 'buy', type: 'market', qty: 10 }).ok);
+  assert(TA.coachTrade(shortG, shortS, shortS.trades[0]).some((x) => x.id === 'stoplevel' && x.level === 'good'));
+  // la charge utile du coach IA contient stop, objectif et niveaux connus, sans l'actif
+  const pl = TA.coachPayload(shortG, shortS, shortS.trades[0], false);
+  assert(pl.stop_initial === 106 && pl.niveaux_traces_connus_a_l_entree.length === 1 && pl.niveaux_traces_connus_a_l_entree[0].type === 'ligne');
+  assert(!JSON.stringify(pl).includes('MSFT'));
+
+  // bilan : niveaux testés, tenus ou cédés (avec le recul)
+  const bars = flat(2).concat([
+    [100, 100, 94.8, 98], [98, 102, 98, 101], [101, 103, 100, 102],       // touche 95 puis repart : tenu
+    [100, 100, 94.9, 97.5], [98, 102, 98, 101], [101, 103, 100, 102],      // second contact : tenu
+  ], flat(6));
+  const gL = synthA(bars), sL = TA.newState(gL, 'soft', 2);
+  TA.addDraw(gL, sL, { k: 'h', p: 95 });
+  assert(TA.submit(gL, sL, { side: 'buy', type: 'market', qty: 10, sl: 90, j: J }).ok);
+  while (sL.idx < gL.endIdx) TA.advance(gL, sL);
+  TA.finish(gL, sL);
+  const lvl = TA.coachGame(gL, sL, TA.summary(gL, sL, bench));
+  assert(lvl.stats.levels.n === 1 && lvl.stats.levels.tested === 2 && lvl.stats.levels.held === 2 && lvl.stats.levels.broke === 0, JSON.stringify(lvl.stats.levels));
+  assert(lvl.findings.some((x) => x.id === 'levels' && x.level === 'good'));
+  const bars2 = flat(2).concat([[100, 100, 94.8, 92], [92, 93, 91, 92]], flat(8));
+  const gB = synthA(bars2), sB = TA.newState(gB, 'soft', 2);
+  TA.addDraw(gB, sB, { k: 'h', p: 95 });
+  assert(TA.submit(gB, sB, { side: 'buy', type: 'market', qty: 10, j: J }).ok);
+  while (sB.idx < gB.endIdx) TA.advance(gB, sB);
+  TA.finish(gB, sB);
+  const lb = TA.coachGame(gB, sB, TA.summary(gB, sB, bench)).stats.levels;
+  assert(lb.tested === 1 && lb.broke === 1 && lb.held === 0, JSON.stringify(lb));
+  ok('tracés : ajout, limites, déplacement, sauvegarde ; indicateurs libres et ATR ; coach : stop, objectif et entrée jugés sur les niveaux connus, miroir en vente à découvert, niveaux testés au bilan');
+}
+
 console.log(`\n${n} groupes de tests reussis`);
 console.log(TA.fmt.money(1234.5), '|', TA.fmt.smoney(-12.3), '|', TA.fmt.spct(0.0321), '|', TA.fmt.date(TA.dayFromISO('2008-09-15')));

@@ -301,6 +301,32 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
   .chart{height:clamp(280px,40vh,420px)}
   .chart-head{padding-inline:12px}
 }
+/* Graphique : indicateurs ajoutables, outils de dessin */
+.chartbox{position:relative}
+.chart-tools .chips{display:inline-flex;gap:6px;flex-wrap:wrap}
+.chip-x{margin:0 -4px 0 2px;padding:0 4px;border:0;background:none;color:var(--muted);font-size:14px;line-height:1;cursor:pointer;border-radius:4px}
+.chip-x:hover{color:var(--down)}
+.draw-tools{display:flex;gap:4px;flex-wrap:wrap;align-items:center;padding:0 14px 6px}
+.draw-tools .sp{flex:1}
+.tool{padding:4px 10px;border:1px solid var(--line-2);border-radius:6px;background:none;color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap}
+.tool:hover{color:var(--text);border-color:var(--faint)}
+.tool.on{color:var(--text);background:var(--accent-a);border-color:var(--accent)}
+.tool.sl.on{background:var(--down-a);border-color:var(--down)} .tool.tp.on{background:var(--up-a);border-color:var(--up)}
+.draw-hint{margin:0;padding:0 14px 8px;color:var(--faint);font-size:12px;min-height:1.4em}
+.ind-panel{position:absolute;z-index:30;left:14px;top:46px;width:min(440px,calc(100% - 28px));max-height:min(520px,75%);overflow:auto;padding:12px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.ind-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ind-row{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}
+.ind-row .btn{margin-left:auto}
+.ind-p{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.ind-p input{width:64px;padding:3px 6px;background:var(--bg);border:1px solid var(--line-2);border-radius:5px;color:var(--text);font:12px var(--f-mono)}
+.ind-sub{margin:12px 0 6px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ind-cat{display:grid;gap:6px}
+.ind-add{display:grid;gap:2px;text-align:left;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:none;color:var(--text);cursor:pointer}
+.ind-add:hover{border-color:var(--accent);background:var(--accent-a)}
+.ind-add .dim{font-size:12px}
+.chart.hot,.chart.hot *{cursor:ns-resize!important}
+.chart.tool-on,.chart.tool-on *{cursor:crosshair!important}
+@media (max-width:560px){.draw-tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.draw-tools::-webkit-scrollbar{display:none}.draw-tools>*{flex:none}.ind-panel{left:8px;width:calc(100% - 16px)}}
 /* Tutoriel : carte collante en haut de la partie, repères autour des éléments à utiliser */
 .tuto{grid-column:1/-1;position:sticky;top:8px;z-index:35;display:grid;gap:6px;padding:12px 16px;background:var(--panel-2);border:1px solid var(--accent);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 .tuto-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
@@ -413,16 +439,31 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
           <div class="legend" id="legend"></div>
         </div>
         <div class="chart-tools" id="inds">
-          <button class="chip" type="button" data-k="vol" style="--c:var(--faint)"><i></i>Volume</button>
-          <button class="chip" type="button" data-k="sma20" style="--c:var(--warn)"><i></i>MM 20</button>
-          <button class="chip" type="button" data-k="sma50" style="--c:var(--accent)"><i></i>MM 50</button>
-          <button class="chip" type="button" data-k="boll" style="--c:var(--violet)"><i></i>Bollinger</button>
-          <button class="chip" type="button" data-k="rsi" style="--c:var(--cyan)"><i></i>RSI</button>
-          <button class="chip" type="button" data-k="macd" style="--c:var(--accent)"><i></i>MACD</button>
+          <button class="btn sm" type="button" id="ind-open" aria-expanded="false" aria-controls="ind-panel">+ Indicateur</button>
+          <span class="chips" id="ind-chips"></span>
           <span class="sp"></span>
           <button class="btn sm" type="button" id="z-out" aria-label="Dézoomer">−</button>
           <button class="btn sm" type="button" id="z-in" aria-label="Zoomer">+</button>
           <button class="btn sm" type="button" id="z-reset">Recentrer</button>
+        </div>
+        <div class="draw-tools" id="draw-tools" role="toolbar" aria-label="Outils de dessin">
+          <button class="tool on" type="button" data-tool="cursor" title="Sélection et déplacement">Curseur</button>
+          <button class="tool" type="button" data-tool="h" title="Ligne horizontale : support ou résistance">Support / résistance</button>
+          <button class="tool" type="button" data-tool="t" title="Ligne de tendance en deux clics">Tendance</button>
+          <button class="tool" type="button" data-tool="r" title="Zone de support ou de résistance">Zone</button>
+          <button class="tool sl" type="button" data-tool="sl" title="Poser ton stop-loss sur le graphique">Stop-loss</button>
+          <button class="tool tp" type="button" data-tool="tp" title="Poser ton objectif sur le graphique">Objectif</button>
+          <button class="tool" type="button" data-tool="erase" title="Effacer un tracé">Gomme</button>
+          <span class="sp"></span>
+          <button class="tool" type="button" id="draw-del" hidden>Supprimer la sélection</button>
+          <button class="tool" type="button" id="draw-clear">Tout effacer</button>
+        </div>
+        <p class="draw-hint" id="draw-hint"></p>
+        <div class="ind-panel" id="ind-panel" role="dialog" aria-label="Indicateurs" hidden>
+          <div class="ind-head"><b>Indicateurs</b><button class="btn sm ghost" type="button" id="ind-close">Fermer</button></div>
+          <div id="ind-active"></div>
+          <h3 class="ind-sub">Ajouter un indicateur</h3>
+          <div class="ind-cat" id="ind-catalog"></div>
         </div>
         <div class="chart" id="chart"></div>
       </section>

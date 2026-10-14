@@ -16,6 +16,10 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   Débutant à Pro qui se gagnent par la discipline et non par les gains.
 - **Statistiques de fin de partie** : rendement, Sharpe, drawdown, taux de réussite, gain et perte moyens,
   comparaison avec l'acheter-conserver et avec les indices S&P 500 et S&P/TSX.
+- **Graphique à la TradingView** : indicateurs ajoutables et retirables avec leurs paramètres (moyennes mobiles,
+  Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et
+  objectif posés ou glissés directement sur le graphique. Le coach juge tes stops, objectifs et entrées d'après les
+  niveaux que tu as tracés avant d'entrer.
 - **Tutoriel** : un mini-parcours de 3 minutes où le joueur ouvre, suit et ferme un premier trade sur la vraie
   interface (stop, taille de position à 1 % du compte, journal, portefeuille, résultat en R). Rien n'est sauvegardé ni compté.
 - **Formation** : 9 leçons avec quiz et un coach à règles après chaque transaction.
@@ -34,7 +38,7 @@ Le jeu existe aussi en page privée sur claude.ai. Cette version publique n'a pa
 ## Développement
 
 ```bash
-npm test            # 56 groupes de tests : moteur, coach, classement, tutoriel
+npm test            # 57 groupes de tests : moteur, coach, classement, tutoriel, tracés
 npm run build       # construit le site statique dans dist/
 npm run serve       # serveur local sur http://localhost:8765
 ```
