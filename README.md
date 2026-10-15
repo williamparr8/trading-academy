@@ -29,6 +29,8 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   (reconnaître double sommet, épaule-tête-épaule, triangles, drapeaux).
 - **Formation** : 17 leçons avec quiz (dont états financiers, valorisation, figures, EPP, mesures de performance), **examen blanc** et
   révision des erreurs.
+- **Atelier EPP** (six dossiers de clients : tolérance au risque, contraintes, allocation), **missions de partie**, **glossaire** de 50 termes,
+  outil **Fibonacci**, jeux de couleurs du graphique, mode **chrono** du Flash, coach IA des rapports (page privée seulement).
 - **Carrière** : points d’expérience, neuf grades, série de jours, objectifs et défi du jour, boss de la semaine, badges, parcours recommandé.
 - **Graphique à la TradingView** : indicateurs ajoutables et retirables avec leurs paramètres (moyennes mobiles,
   Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et

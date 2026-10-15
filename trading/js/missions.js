@@ -26,7 +26,9 @@
   MS.pick = function (seed) {
     let h = hash('MS|' + seed);
     const idx = [];
-    while (idx.length < 3) { const i = h % MS.ALL.length; if (!idx.includes(i)) idx.push(i); h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0; if (h === 0) h = 7; }
+    let guard = 0;
+    while (idx.length < 3 && guard++ < 200) { const i = h % MS.ALL.length; if (!idx.includes(i)) idx.push(i); h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0; if (h === 0) h = 7; }
+    for (let i = 0; idx.length < 3; i++) if (!idx.includes(i)) idx.push(i);   // filet de sécurité : toujours trois missions
     return idx.map((i) => MS.ALL[i]);
   };
   MS.evaluate = (list, ctx) => list.map((m) => { let ok = false; try { ok = !!m.test(ctx); } catch (e) { ok = false; } return { id: m.id, text: m.text, ok }; });

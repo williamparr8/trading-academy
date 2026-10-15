@@ -34,3 +34,11 @@ for (const c of IPS.CASES) {
 const partial = IPS.grade(IPS.CASES[1], { risk: 'faible', cons: ['liquidite'], alloc: 'B' });
 assert.equal(partial.risk, 40); assert.equal(partial.cons, 15); assert.equal(partial.alloc, 0);
 console.log('  OK atelier EPP: six dossiers cohérents, notation exacte (tolérance, contraintes partielles, allocation)');
+
+// glossaire
+await import('../trading/js/glossary.js');
+const GL = globalThis.TA.GLOSSARY;
+assert(GL.length >= 50 && GL.every((e) => e.length === 3 && e[0] && e[1].length > 20));
+assert(new Set(GL.map((e) => e[0])).size === GL.length, 'termes uniques');
+assert(GL.search('sharpe').length >= 1 && GL.search('zzzzzz').length === 0 && GL.search('').length === GL.length);
+console.log('  OK glossaire: termes uniques, recherche');
