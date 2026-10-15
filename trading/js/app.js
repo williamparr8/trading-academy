@@ -751,7 +751,7 @@
     const out = TA.applyResult(App.profile, { code: App.cfg.code, level, ev, ret: sum.retPct, dd: sum.maxDD, trades: sum.trades, replay: !!App.cfg.replay, live });
     saveProfile();
     const mres = TA.MISSIONS && !live ? TA.MISSIONS.evaluate(TA.MISSIONS.pick(App.cfg.challenge || App.cfg.code), { sum, trades: App.st.trades, bars: App.g.endIdx - App.g.startIdx }) : [];
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'game', missions: mres.filter((x) => x.ok).length, missionsTotal: mres.length, ret: sum.retPct, bh: sum.bh, dd: sum.maxDD, trades: sum.trades, counted: out.counted, passed: out.passed, replay: !!App.cfg.replay, live, scenario: App.cfg.resolved } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'game', code: App.cfg.challenge || App.cfg.code, missions: mres.filter((x) => x.ok).length, missionsTotal: mres.length, ret: sum.retPct, bh: sum.bh, dd: sum.maxDD, trades: sum.trades, counted: out.counted, passed: out.passed, replay: !!App.cfg.replay, live, scenario: App.cfg.resolved } })); } catch (e) { /* rien */ }
     App.endInfo = { level, ev, out, fresh: !App.cfg.replay };
     App.sum = sum;
     const res = store.get(KEY_RESULTS) || [];

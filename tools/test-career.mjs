@@ -53,4 +53,14 @@ ok('grades, progression vers le grade suivant, code du jour reproductible');
   assert(r.badges.includes('missions') && r.why.some((w) => w.includes('mission')));
   ok2('missions : tirage reproductible, évaluation juste, XP et badge');
 }
+{
+  const c1 = CR.gameCode('2026-10-15'), c2 = CR.gameCode('2026-10-15'), c3 = CR.gameCode('2026-10-16');
+  assert.equal(c1, c2); assert.notEqual(c1, c3);
+  assert(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/.test(c1), c1);
+  const r = CR.apply({ kind: 'game', code: CR.gameCode(), ret: 0.05, bh: 0.1, dd: -0.2, trades: 2, counted: false, passed: false, replay: false });
+  assert(r.why.some((w) => w.includes('défi du jour : partie')));
+  const r2 = CR.apply({ kind: 'game', code: CR.gameCode(), ret: 0.05, bh: 0.1, dd: -0.2, trades: 2, counted: false, passed: false, replay: false });
+  assert(!r2.why.some((w) => w.includes('défi du jour : partie')), 'bonus unique');
+  ok('partie du jour : code reproductible au format du jeu, bonus unique');
+}
 console.log(`  ${n} groupes de la carrière réussis`);

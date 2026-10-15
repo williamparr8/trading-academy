@@ -49,6 +49,15 @@
   // lundi de la semaine en cours : le « boss » de la semaine est le même pour tous
   CR.weekStart = (d = new Date()) => { const day = (d.getDay() + 6) % 7, m = new Date(d.getTime() - day * 86400000); return m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-' + String(m.getDate()).padStart(2, '0'); };
   CR.weekCode = () => CR.dayCode(CR.weekStart(), 'PM');
+  CR.gameCode = (date = today()) => {
+    const A = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+    let h = 2166136261;
+    for (const ch of 'TG' + date) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+    h >>>= 0;
+    let s = '';
+    for (let i = 0; i < 8; i++) { s += A[h % A.length]; h = (Math.imul(h ^ (h >>> 15), 2246822519) >>> 0) || 7; if (i === 3) s += '-'; }
+    return s;
+  };
   CR.state = () => { const s = store.get(); return s && s.v === 1 ? { ...blank(), ...s } : blank(); };
 
   CR.rankOf = (xp) => {
@@ -123,10 +132,13 @@
       st.days.last = now; st.days.best = Math.max(st.days.best, st.days.streak);
     }
     if (st.daily.date !== now) st.daily = { date: now, done: {} };
+    st.active = Array.isArray(st.active) ? st.active : [];
+    if (!st.active.includes(now)) st.active = [...st.active, now].slice(-120);
     const a = CR.award(e, st);
     // objectifs du jour : bonus unique par objectif
     const mode = e.kind === 'game' ? 'trade' : e.kind;
     if (e.kind === 'flash' && e.code === CR.dayCode(now, 'FL') && !st.daily.done.flash) { st.daily.done.flash = true; a.xp += 40; a.why.push('défi du jour : Flash'); }
+    if (e.kind === 'game' && String(e.code || '').startsWith(CR.gameCode(now)) && !st.daily.done.dailygame) { st.daily.done.dailygame = true; a.xp += 40; a.why.push('défi du jour : partie'); }
     if (e.kind === 'pm' && e.code === CR.weekCode() && (!st.weekly || st.weekly.week !== CR.weekStart())) {
       st.weekly = { week: CR.weekStart(), grade: e.grade };
       const bonus = ['A', 'B', 'C'].includes(e.grade) ? 80 : 20;
@@ -172,6 +184,7 @@
     const bn = res.badges.map((id) => (CR.BADGES.find((b) => b.id === id) || {}).name).filter(Boolean);
     el.innerHTML = `<b>+${res.xp} XP</b> <span>${esc(res.why.slice(0, 3).join(' · '))}</span>${res.promoted ? `<div class="up">Nouveau grade : ${esc(res.rank.name)}</div>` : ''}${bn.length ? `<div class="bd">Badge : ${esc(bn.join(', '))}</div>` : ''}`;
     box.appendChild(el);
+    if (res.promoted || res.badges.length) { try { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) confetti(); } catch (e) { /* rien */ } }
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 400); }, res.promoted || bn.length ? 7000 : 4500);
   }
   // parcours recommandé : la prochaine étape non faite met l'apprenant sur la bonne voie
@@ -199,6 +212,24 @@
     const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   const lesson = (id) => { const hb = document.querySelector('[data-hmode="learn"]'); if (hb) hb.click(); const b = document.querySelector('[data-lesson="' + id + '"]'); if (b) b.click(); else { const o = document.getElementById('learn-open'); if (o) o.click(); } };
+  // carte de chaleur des 8 dernières semaines
+  function heat(st) {
+    const set = new Set(st.active || []), cells = [], day0 = new Date();
+    for (let k = 55; k >= 0; k--) {
+      const d = new Date(day0.getTime() - k * 86400000), id = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      cells.push(`<i class="${set.has(id) ? 'on' : ''}" title="${id}"></i>`);
+    }
+    return `<div class="cr-heat" aria-label="Jours joués">${cells.join('')}</div>`;
+  }
+  // confettis pour un nouveau grade
+  function confetti() {
+    const box = document.createElement('div');
+    box.className = 'cr-confetti'; box.setAttribute('aria-hidden', 'true');
+    const cols = ['#d9a400', '#0b3fd6', '#d81e27', '#1a8f4f', '#6b3fb5'];
+    for (let i = 0; i < 46; i++) { const p = document.createElement('i'); p.style.left = Math.random() * 100 + '%'; p.style.background = cols[i % cols.length]; p.style.animationDelay = Math.random() * 0.5 + 's'; p.style.transform = 'rotate(' + Math.random() * 360 + 'deg)'; box.appendChild(p); }
+    document.body.appendChild(box);
+    setTimeout(() => box.remove(), 2600);
+  }
   let pathCache = [];
   function renderCard() {
     const box = $('#career-card');
@@ -210,14 +241,16 @@
     pathCache = pth;
     const goals = [
       ['weekly', 'Boss de la semaine : retraitée en pleine crise de 2008', 'wk', 80],
+      ['dailygame', 'Défi du jour : partie d’entraînement', 'dg', 40],
       ['flash', 'Défi du jour : Flash technique', 'fl', 40], ['manager', 'Le mandat ou la saison du jour', 'mgr', 30], ['learn', 'Une partie ou un quiz', null, 15],
-    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : a === 'mgr' && !done[k] ? '<button class="btn sm" type="button" data-career="mgr">Jouer</button>' : a === 'wk' && !done[k] ? '<button class="btn sm" type="button" data-career="wk">Jouer</button>' : ''}</li>`).join('');
+    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : a === 'mgr' && !done[k] ? '<button class="btn sm" type="button" data-career="mgr">Jouer</button>' : a === 'wk' && !done[k] ? '<button class="btn sm" type="button" data-career="wk">Jouer</button>' : a === 'dg' && !done[k] ? '<button class="btn sm" type="button" data-career="dg">Jouer</button>' : ''}</li>`).join('');
     const badges = CR.BADGES.map((b) => `<span class="cr-badge ${st.badges[b.id] ? 'on' : ''}" title="${esc(b.name)} : ${esc(b.desc)}${st.badges[b.id] ? ' (obtenu le ' + esc(st.badges[b.id]) + ')' : ''}">${esc(b.name)}</span>`).join('');
     box.innerHTML = `<h2>Ta carrière</h2>
       <div class="cr-top"><div><b class="cr-rank">${esc(r.name)}</b><small>${nf.format(st.xp)} XP${r.next ? ` · prochain grade : ${esc(r.next)} à ${nf.format(r.to)}` : ' · grade maximal'}</small></div><div class="cr-streak" title="Jours consécutifs"><b>${live}</b><small>jour${live > 1 ? 's' : ''} de suite</small></div></div>
       <div class="prog"><i style="width:${Math.round(r.pct * 100)}%"></i></div>
       ${nextI >= 0 ? `<div class="cr-next"><span>Prochaine étape</span><b>${esc(pth[nextI].t)}</b><button class="btn sm primary" type="button" data-career="path" data-i="${nextI}">Y aller</button></div>` : ""}<details class="cr-det"><summary>Parcours recommandé · ${pth.filter((x) => x.done).length} sur ${pth.length}</summary><ul class="cr-goals cr-path">${pth.map((x, i) => `<li class="${x.done ? 'ok' : i === nextI ? 'next' : ''}"><span class="ic">${x.done ? '✓' : i === nextI ? '▶' : '○'}</span><span>${esc(x.t)}</span>${i === nextI ? `<button class="btn sm primary" type="button" data-career="path" data-i="${i}">Y aller</button>` : ''}</li>`).join('')}</ul></details>
       <p class="sub">Objectifs du jour</p><ul class="cr-goals">${goals}</ul>
+      <details class="cr-det"><summary>Activité · ${(st.active || []).length} jour${(st.active || []).length > 1 ? 's' : ''}</summary>${heat(st)}</details>
       <details class="cr-det"><summary>Badges · ${Object.keys(st.badges).length} sur ${CR.BADGES.length}</summary><div class="cr-badges">${badges}</div></details>`;
   }
   // sélecteur de mode : l'accueil ne montre que les cartes du mode choisi
@@ -239,6 +272,18 @@
   document.addEventListener('click', (e) => {
     const pb = e.target.closest('[data-career="path"]');
     if (pb && pathCache[+pb.dataset.i]) { pathCache[+pb.dataset.i].go(); return; }
+    if (e.target.closest('[data-career="dg"]')) {
+      const hb = document.querySelector('[data-hmode="trade"]'); if (hb) hb.click();
+      const pick = (sel, v) => { const b = document.querySelector(sel + ' [data-v="' + v + '"]'); if (b) b.click(); };
+      pick('#s-mode', 'train'); pick('#s-market', 'stock'); pick('#s-style', 'swing');
+      const sc = $('#s-scen'), code = $('#s-code'), go = $('#s-go');
+      if (sc && code && go) {
+        sc.value = 'random'; sc.dispatchEvent(new Event('change', { bubbles: true }));
+        code.value = CR.gameCode(); code.dispatchEvent(new Event('input', { bubbles: true }));
+        setTimeout(() => go.click(), 50);
+      }
+      return;
+    }
     if (e.target.closest('[data-career="wk"]')) {
       const sel = $('#pm-mand'), sc = $('#pm-scen'), code = $('#pm-code'), b = document.querySelector('[data-pm-home="start"]');
       if (sel && sc && code && b) {
