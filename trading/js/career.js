@@ -42,6 +42,7 @@
   for (let i = 1; i <= 10; i++) CR.BADGES.push({ id: 'camp' + i, name: 'Chapitre ' + i, desc: 'Réussis les 10 niveaux du chapitre ' + i + ' de la campagne.' });
   CR.BADGES.push({ id: 'campAll', name: 'Gestionnaire de la Maison Boréale', desc: 'Termine le niveau 100 de la campagne.' }, { id: 'campGold', name: 'Maîtrise totale', desc: 'Obtiens trois étoiles aux 100 niveaux.' });
   CR.BADGES.push({ id: 'rev1', name: 'Mémoire en marche', desc: 'Termine une séance de révision du carnet d’erreurs.' }, { id: 'rev25', name: 'Mémoire d’acier', desc: 'Maîtrise 25 questions de ton carnet d’erreurs.' });
+  CR.BADGES.push({ id: 'leaguePromo', name: 'Promu', desc: 'Monte d’une ligue hebdomadaire.' }, { id: 'leagueTop', name: 'Ligue Diamant', desc: 'Atteins la ligue Diamant.' });
   const KEY = 'ta:career';
   const blank = () => ({ v: 1, xp: 0, days: { last: null, streak: 0, best: 0 }, daily: { date: null, done: {} }, badges: {}, stats: { game: 0, pm: 0, fund: 0, flash: 0, quiz: 0 }, quizPass: {}, log: [] });
   const store = {
@@ -146,6 +147,7 @@
     return out;
   };
 
+  CR.giveBadge = (id) => { const st = CR.state(); if (st.badges[id]) return false; st.badges[id] = today(); store.set(st); return true; };
   CR.apply = function (e) {
     const st = CR.state(), now = today();
     const before = CR.rankOf(st.xp);
@@ -177,6 +179,7 @@
     if ((e.kind === 'quiz' || e.kind === 'game' || e.kind === 'review') && !st.daily.done.learn) { st.daily.done.learn = true; a.xp += 15; a.why.push('objectif du jour : apprendre ou jouer'); }
     if (a.xp > 0 && st.days.streak >= 2) { const b = Math.min(20, 5 * st.days.streak); a.xp += b; a.why.push(`série de ${st.days.streak} jours`); }
     st.xp += a.xp;
+    { const wk = CR.weekStart(); if (!st.wk || st.wk.week !== wk) { if (st.wk && st.wk.week < wk) st.wkPrev = st.wk; st.wk = { week: wk, xp: 0 }; } st.wk.xp += a.xp; }
     const key = e.kind === 'game' ? 'game' : e.kind;
     st.stats[key] = (st.stats[key] || 0) + 1;
     if (e.kind === 'quiz' && e.score / e.total >= 0.75) st.quizPass[e.id] = true;

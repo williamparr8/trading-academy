@@ -985,6 +985,16 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
 .rv-dots{display:inline-flex;align-items:center}
 .rv-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#cbd5e1;margin-left:5px}
 .rv-dot.on{background:var(--accent)}
+/* ===================== Ligue ===================== */
+.lg-list{display:flex;flex-direction:column;gap:6px;margin:10px 0 6px}
+.lg-row{display:grid;grid-template-columns:28px 30px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-radius:12px;background:#f3f5fd;border:1px solid transparent;font-size:14px}
+.lg-row.up{background:#ecfdf5;border-color:#a7f3d0}
+.lg-row.down{background:#fff1f2;border-color:#fecdd3}
+.lg-row.me{outline:2px solid var(--accent);font-weight:700}
+.lg-rk{font-weight:800;color:var(--muted);text-align:center}
+.lg-av{font-size:19px;text-align:center}
+.lg-xp{font-variant-numeric:tabular-nums;font-weight:700}
+.lg-row.me .lg-nm{color:var(--accent)}
 </style>
 
 <div class="wrap">
@@ -1336,4 +1346,5 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
 <script src="js/review.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/career.js"></script>
+<script src="js/league.js"></script>
 <script src="js/app.js"></script>
