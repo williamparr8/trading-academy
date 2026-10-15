@@ -82,7 +82,9 @@
     const out = { xp: 0, why: [], badges: [] };
     const add = (n, t) => { if (n > 0) { out.xp += Math.round(n); out.why.push(t); } };
     const gradeBonus = { A: 100, B: 70, C: 40, D: 20, E: 5 };
-    if (e.kind === 'game') {
+    if (e.kind === 'game' && !(e.trades > 0)) {
+      // aucune transaction : ni points ni badge (sinon « Nouvelle partie » puis « Terminer » ferait grimper les grades)
+    } else if (e.kind === 'game') {
       const f = e.replay ? 0.3 : 1;
       add(20 * f, 'partie terminée');
       if (e.counted && e.passed) add(40 * f, 'partie disciplinée');
@@ -105,16 +107,18 @@
       out.badges.push('fund1');
       if (e.accuracy != null && e.accuracy >= 0.6 && e.predictions >= 6) out.badges.push('oracle');
     } else if (e.kind === 'flash') {
-      add(20, 'séance terminée'); add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
+      if (e.taken >= 3) add(20, 'séance terminée');
+      add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
       if (e.timed) add(15, 'mode chrono');
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
-      out.badges.push('flash1'); if (e.total >= 5) out.badges.push('flashPos');
+      if (e.taken >= 3) out.badges.push('flash1');
+      if (e.total >= 5) out.badges.push('flashPos');
     } else if (e.kind === 'ips') {
       add(20 + e.score * 0.4, `atelier EPP : ${Math.round(e.score)} sur 100`);
       out.badges.push('ips1'); if (e.score >= 80) out.badges.push('ips80');
     } else if (e.kind === 'exam') {
       const f = e.review ? 0.5 : 1;
-      add(f * (15 + e.pct * 30), `${Math.round(e.pct * 100)} % à l’examen`);
+      add(f * e.pct * 45, `${Math.round(e.pct * 100)} % à l’examen`);
       if (e.pass && !e.review) add(30, 'examen réussi');
       if (!e.review && e.pass) out.badges.push('exam');
       if (!e.review && e.pct >= 0.9) out.badges.push('exam90');
@@ -141,10 +145,15 @@
     st.active = Array.isArray(st.active) ? st.active : [];
     if (!st.active.includes(now)) st.active = [...st.active, now].slice(-120);
     const a = CR.award(e, st);
+    const ck = e.code && e.kind !== 'quiz' ? e.kind + ':' + String(e.code) : null;
+    st.seen = Array.isArray(st.seen) ? st.seen : [];
+    const dup = !!ck && st.seen.includes(ck);
+    if (ck && !dup) st.seen = [...st.seen, ck].slice(-300);
+    if (dup) { a.xp = Math.round(a.xp * 0.15); a.why = ['même code déjà joué : points réduits']; }
     // objectifs du jour : bonus unique par objectif
     const mode = e.kind === 'game' ? 'trade' : e.kind;
-    if (e.kind === 'flash' && e.code === CR.dayCode(now, 'FL') && !st.daily.done.flash) { st.daily.done.flash = true; a.xp += 40; a.why.push('défi du jour : Flash'); }
-    if (e.kind === 'game' && String(e.code || '').startsWith(CR.gameCode(now)) && !st.daily.done.dailygame) { st.daily.done.dailygame = true; a.xp += 40; a.why.push('défi du jour : partie'); }
+    if (!dup && e.kind === 'flash' && e.code === CR.dayCode(now, 'FL') && !st.daily.done.flash) { st.daily.done.flash = true; a.xp += 40; a.why.push('défi du jour : Flash'); }
+    if (!dup && e.kind === 'game' && e.trades > 0 && String(e.code || '').startsWith(CR.gameCode(now)) && !st.daily.done.dailygame) { st.daily.done.dailygame = true; a.xp += 40; a.why.push('défi du jour : partie'); }
     if (e.kind === 'pm' && e.code === CR.weekCode() && e.scenario === 'krach2008' && e.mand === 'retraitee' && (!st.weekly || st.weekly.week !== CR.weekStart())) {
       st.weekly = { week: CR.weekStart(), grade: e.grade };
       const bonus = ['A', 'B', 'C'].includes(e.grade) ? 80 : 20;
@@ -289,7 +298,13 @@
       const j = JSON.parse(await file.text());
       if (!j || j.app !== 'trading-academy' || !j.data) throw new Error('format');
       let n = 0;
-      for (const k of KEYS) if (typeof j.data[k] === 'string') { JSON.parse(j.data[k]); localStorage.setItem(k, j.data[k]); n++; }
+      for (const k of KEYS) {
+        if (typeof j.data[k] !== 'string' || j.data[k].length > 200000) continue;
+        const v = JSON.parse(j.data[k]);
+        if (k === 'ta:career' && !(v && typeof v === 'object' && Number.isFinite(v.xp) && v.badges && typeof v.badges === 'object' && !Array.isArray(v.badges))) continue;
+        if (k.endsWith('hist') && !Array.isArray(v)) continue;
+        localStorage.setItem(k, j.data[k]); n++;
+      }
       renderCard();
       toast({ xp: 0, why: [n + ' éléments de progression restaurés'], badges: [], promoted: false });
     } catch (e) { toast({ xp: 0, why: ['Fichier de progression invalide'], badges: [], promoted: false }); }

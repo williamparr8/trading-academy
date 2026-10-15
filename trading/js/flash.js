@@ -125,6 +125,7 @@
     if (!S.timed || S.phase !== 'choose') return;
     S.left = LIMIT;
     S.timer = setInterval(() => {
+      if (APP().screen !== 'flash') { stopTimer(); return; }   // on a quitté l'écran : le chrono s'arrête
       S.left -= 0.1;
       const el = $('#fl-timer');
       if (el) { el.style.width = Math.max(0, (S.left / LIMIT) * 100) + '%'; el.parentNode.title = Math.ceil(Math.max(0, S.left)) + ' s'; }

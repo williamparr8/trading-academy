@@ -63,4 +63,12 @@ ok('grades, progression vers le grade suivant, code du jour reproductible');
   assert(!r2.why.some((w) => w.includes('défi du jour : partie')), 'bonus unique');
   ok('partie du jour : code reproductible au format du jeu, bonus unique');
 }
+{
+  const z = CR.apply({ kind: 'game', code: 'ZZZZ-ZZZZ', ret: 0.2, bh: -0.1, dd: 0, trades: 0, counted: false, passed: false, replay: false });
+  assert.equal(z.xp, 0, 'aucune transaction : aucun point');
+  const a = CR.apply({ kind: 'pm', grade: 'A', monthsBad: 0, code: 'PM-REPLAY-01' });
+  const b = CR.apply({ kind: 'pm', grade: 'A', monthsBad: 0, code: 'PM-REPLAY-01' });
+  assert(b.xp < a.xp * 0.3, 'même code : points réduits ' + a.xp + ' -> ' + b.xp);
+  ok('anti-farm : partie vide sans points, code rejoué fortement réduit');
+}
 console.log(`  ${n} groupes de la carrière réussis`);
