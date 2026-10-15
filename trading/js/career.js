@@ -31,6 +31,8 @@
     { id: 'streak7', name: 'Une semaine de suite', desc: 'Joue sept jours consécutifs.' },
     { id: 'pattern1', name: 'Œil de chartiste', desc: 'Termine une Chasse aux figures.' },
     { id: 'patternAce', name: 'Sans faute chartiste', desc: 'Au moins 9 figures sur 10 reconnues.' },
+    { id: 'ips1', name: 'Rédacteur d’EPP', desc: 'Termine les six dossiers de l’atelier EPP.' },
+    { id: 'ips80', name: 'Conseiller de confiance', desc: 'Obtiens 80 sur 100 ou plus à l’atelier EPP.' },
     { id: 'exam', name: 'Examen réussi', desc: 'Obtiens 70 % ou plus à l’examen blanc.' },
     { id: 'exam90', name: 'Mention excellence', desc: 'Obtiens 90 % ou plus à l’examen blanc.' },
     { id: 'boss', name: 'Boss de la semaine', desc: 'Obtiens au moins B au mandat de crise de la semaine.' },
@@ -106,6 +108,9 @@
       add(20, 'séance terminée'); add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
       out.badges.push('flash1'); if (e.total >= 5) out.badges.push('flashPos');
+    } else if (e.kind === 'ips') {
+      add(20 + e.score * 0.4, `atelier EPP : ${Math.round(e.score)} sur 100`);
+      out.badges.push('ips1'); if (e.score >= 80) out.badges.push('ips80');
     } else if (e.kind === 'exam') {
       const f = e.review ? 0.5 : 1;
       add(f * (15 + e.pct * 30), `${Math.round(e.pct * 100)} % à l’examen`);
