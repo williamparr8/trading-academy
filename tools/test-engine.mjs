@@ -1170,6 +1170,17 @@ function synth(bars) {
   ok('modules du tutoriel : parcours à la baisse jusqu’au résultat, étapes des indicateurs, signaux présents dans l’historique');
 }
 
+{
+  // outil Fibonacci : deux points, prix différents, jamais dans le futur
+  const plan = TA.planGame('TEST-FIB', 'random', 'swing', 120, index);
+  const g = TA.buildGame(read(plan.assetId), plan, 'swing', 120), st = TA.newState(g, 'strict2', 1, 1);
+  const i0 = g.startIdx - 10, i1 = g.startIdx;
+  assert(TA.addDraw(g, st, { k: 'f', a: { i: i0, p: g.c[i0] }, b: { i: i1, p: g.c[i1] * 1.1 } }).ok, 'fibonacci accepté');
+  assert(!TA.addDraw(g, st, { k: 'f', a: { i: i0, p: 100 }, b: { i: i1, p: 100 } }).ok, 'prix identiques refusés');
+  assert(!TA.addDraw(g, st, { k: 'f', a: { i: i0, p: 100 }, b: { i: g.startIdx + 50, p: 110 } }).ok, 'futur refusé');
+  assert(TA.levelsAt(st, g.startIdx).every((l) => l.k !== 'f'), 'le coach ignore les retracements');
+  console.log('  OK fibonacci : tracé accepté et validé, le coach l’ignore');
+}
 await import('./test-pm.mjs');   // gestionnaire de portefeuille
 await import('./test-fund.mjs');   // saison des résultats
 await import('./test-flash.mjs');   // flash technique

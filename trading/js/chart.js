@@ -12,7 +12,8 @@
   const idxOf = (t) => Math.round((t - BASE) / DAY);
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const HIT = 7;      // tolérance de sélection en pixels
-  const SNAP = 8;     // aimantation aux prix d'ouverture, haut, bas et clôture
+  const SNAP = 8;
+  const FIB = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];   // niveaux de retracement : 0 = fin du mouvement, 1 = début     // aimantation aux prix d'ouverture, haut, bas et clôture
 
   // Couche de dessin attachée à la série de chandeliers : elle est redessinée par le graphique à chaque changement
   // d'échelle (zoom, défilement, nouvelle barre), donc les tracés restent collés aux prix.
@@ -329,6 +330,12 @@
     }
     _dist(gm, x, y) {
       if (gm.k === 'h') return Math.abs(y - gm.y);
+      if (gm.k === 'f') {
+        if (x < Math.min(gm.xa, gm.xb) - HIT) return 1e9;
+        let best = 1e9;
+        for (const r of FIB) best = Math.min(best, Math.abs(y - (gm.yb + (gm.ya - gm.yb) * r)));
+        return best;
+      }
       if (gm.k === 'r') {
         const l = Math.min(gm.xa, gm.xb), top = Math.min(gm.ya, gm.yb), bot = Math.max(gm.ya, gm.yb);
         if (x < l - HIT || y < top - HIT || y > bot + HIT) return 1e9;
@@ -449,6 +456,16 @@
             ctx.strokeStyle = col; ctx.lineWidth = sel ? 2.5 : 1.5;
             line(0, gm.y, W, gm.y);
             tag(`${sup ? 'Support' : 'Résistance'} ${nf(gm.p)}`, W - 8, gm.y - 12, col, true);
+          } else if (gm.k === 'f') {
+            const l = Math.max(0, Math.min(gm.xa, gm.xb));
+            for (const r of FIB) {
+              const y = gm.yb + (gm.ya - gm.yb) * r, price = d.b.p + (d.a.p - d.b.p) * r, edge = r === 0 || r === 1;
+              ctx.strokeStyle = edge ? C.muted : C.violet; ctx.lineWidth = sel ? 2 : 1; ctx.setLineDash(edge ? [] : [4, 3]);
+              line(l, y, W, y);
+              tag(`${(r * 100).toFixed(1).replace('.', ',')} % · ${nf(price)}`, W - 8, y - 9, edge ? C.muted : C.violet, true);
+            }
+            ctx.setLineDash([]);
+            dot(gm.xa, gm.ya, C.violet); dot(gm.xb, gm.yb, C.violet);
           } else if (gm.k === 'r') {
             const l = Math.max(0, Math.min(gm.xa, gm.xb)), top = Math.min(gm.ya, gm.yb), h = Math.abs(gm.yb - gm.ya);
             ctx.fillStyle = C.warnA; ctx.fillRect(l, top, W - l, h);

@@ -905,8 +905,9 @@
     const okP = (p) => fin(p) && p > 0 && p < 1e9;
     const at = Number.isInteger(d.at) && d.at >= 0 && d.at <= st.idx ? d.at : st.idx;
     if (d.k === 'h') return okP(d.p) ? { k: 'h', p: d.p, at } : null;
-    if ((d.k === 't' || d.k === 'r') && d.a && d.b && okI(d.a.i) && okI(d.b.i) && okP(d.a.p) && okP(d.b.p)) {
+    if ((d.k === 't' || d.k === 'r' || d.k === 'f') && d.a && d.b && okI(d.a.i) && okI(d.b.i) && okP(d.a.p) && okP(d.b.p)) {
       if (d.k === 't' && d.a.i === d.b.i) return null;
+      if (d.k === 'f' && d.a.p === d.b.p) return null;
       return { k: d.k, a: { i: d.a.i, p: d.a.p }, b: { i: d.b.i, p: d.b.p }, at };
     }
     return null;

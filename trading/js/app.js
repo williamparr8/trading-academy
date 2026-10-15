@@ -895,6 +895,7 @@
     h: 'Clique le prix de ton support ou de ta résistance : la ligne se place d’elle-même au bon endroit.',
     t: 'Clique le point de départ, puis le second point de ta ligne de tendance.',
     r: 'Clique deux coins opposés de ta zone de support ou de résistance.',
+    f: 'Clique le début puis la fin du mouvement : les retracements (38,2 %, 50 %, 61,8 %) servent de repères de support ou de résistance.',
     sl: 'Clique le prix de ton stop-loss. Avec une position ouverte, il est appliqué tout de suite.',
     tp: 'Clique le prix de ton objectif. Avec une position ouverte, il est appliqué tout de suite.',
     erase: 'Clique un tracé pour l’effacer.',
