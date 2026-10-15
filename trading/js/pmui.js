@@ -294,6 +294,24 @@
     o.push(adv.length ? `Pour la suite, nous proposons de ${adv.join(', de ')}.` : 'Pour la suite, nous proposons de maintenir la politique actuelle et de la réviser avec vous si votre situation change.');
     return o;
   }
+  // faits anonymes envoyés au coach IA (jamais de code ni de nom de compte)
+  function aiFacts() {
+    const { g, st, ev } = S, m = g.mand;
+    return {
+      mandat: m.name, client: m.client, objectif: m.objective.text, mois: st.mon.length,
+      rendement_annuel_pct: +(100 * ev.ann).toFixed(2), indice_pct: +(100 * ev.bann).toFixed(2), volatilite_pct: +(100 * ev.vol).toFixed(1), perte_max_pct: +(100 * ev.dd).toFixed(1), perte_max_indice_pct: +(100 * ev.bdd).toFixed(1),
+      sharpe: ev.sharpe == null ? null : +ev.sharpe.toFixed(2), erreur_de_suivi_pct: +(100 * ev.te).toFixed(1), alpha_pct: ev.alpha == null ? null : +(100 * ev.alpha).toFixed(1),
+      mois_hors_politique: ev.monthsBad, depassements: ev.types, rotation_pct: Math.round(100 * ev.turnover), frais: Math.round(ev.costs),
+      note: Math.round(ev.score.total), jugement: (ev.asks || []).map((a) => ({ question: a.id, score: st.answers && st.answers[a.id] ? st.answers[a.id].s : 0 })),
+      justifications: st.trades.filter((t) => t.note).slice(0, 8).map((t) => t.note),
+    };
+  }
+  async function askAI() {
+    S.ai = { state: 'loading' }; paintAI();
+    try { S.ai = { state: 'done', data: await TA.AI.ask('pm', aiFacts()) }; } catch (e) { S.ai = { state: 'error', msg: TA.AI.errMsg(e) }; }
+    paintAI();
+  }
+  function paintAI() { const el = $('#pm-ai-body'); if (el) el.innerHTML = TA.AI.html(S.ai); }
   function renderReport(root) {
     const { g, st, ev } = S, m = g.mand, sc = ev.score;
     const d0 = g.t[g.start], d1 = g.t[st.idx];
@@ -334,6 +352,7 @@
           <tr class="sumrow"><td>Écart total à l’indice</td><td class="r ${cls(ev.ann - ev.bann)}">${sp1(ev.ann - ev.bann)}</td></tr></tbody></table></div>
           <p class="mt-note">Poids actif × rendement relatif de chaque actif, mois par mois. La somme approche l’écart total : le reste vient de la composition des rendements et de la dérive.</p></section>
         ${TA.EVENTS && TA.EVENTS.rows(g.t[g.start], g.t[st.idx]).length ? `<section class="mt-win pm-notes"><header class="mt-wh"><b>Ce qui se passait dans le monde</b></header><div class="mt-wb"><table class="mt-tbl"><tbody>${TA.EVENTS.rows(g.t[g.start], g.t[st.idx]).map((x) => `<tr><td class="mono" style="white-space:nowrap">${esc(x.date)}</td><td style="white-space:normal">${esc(x.text)}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+        ${TA.AI && TA.AI.ok() ? `<section class="mt-win pm-notes"><header class="mt-wh"><b>Coach IA</b></header><div class="mt-wb pm-pad ai-box" id="pm-ai-body">${TA.AI.html(S.ai)}</div></section>` : ''}
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Lettre au client</b></header><div class="mt-wb pm-pad pm-letter">${letter(g, st, ev).map((t) => `<p>${esc(t)}</p>`).join('')}</div></section>
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Commentaires du coach</b></header><div class="mt-wb pm-pad">
           ${ev.notes.map((n) => `<div class="${kinds[n.kind] || 'fd'}"><i></i><div><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div></div>`).join('')}
@@ -345,6 +364,7 @@
   /* ---------- événements ---------- */
   function bind() {
     document.addEventListener('click', (e) => {
+      if (e.target.closest('#pm-ai-body [data-ai-go]')) { askAI(); return; }
       const ans = e.target.closest('[data-pm-ans]');
       if (ans && S.g && S.st) {
         const r = PM.answer(S.g, S.st, +ans.dataset.pmAns);

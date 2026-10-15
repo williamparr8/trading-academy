@@ -241,6 +241,21 @@
     if (st.d === 0 && !Object.keys(st.preds).length) return tips[0];
     return tips[(st.d + 1) % tips.length];
   }
+  function aiFacts() {
+    const { g, st, ev } = S;
+    return {
+      trimestres: st.results.length, rendement_pct: +(100 * ev.tot).toFixed(1), indice_pct: +(100 * ev.idxRet).toFixed(1), ecart_pct: +(100 * ev.alpha).toFixed(1),
+      predictions_justes_pct: ev.accuracy == null ? null : Math.round(100 * ev.accuracy), predictions: st.score.total, position_max_pct: Math.round(100 * ev.maxW), frais: Math.round(ev.fees),
+      societes_a_comptabilite_agressive: g.agg, detenues_lors_de_la_chute: ev.heldThroughBlow, note: Math.round(ev.score.total),
+      titres: ev.picks.map((p) => ({ id: p.id, agressive: p.isAgg, rendement_saison_pct: Math.round(100 * p.retPeriod), detenu: p.held > 0 })),
+    };
+  }
+  async function askAI() {
+    S.ai = { state: 'loading' }; paintAI();
+    try { S.ai = { state: 'done', data: await TA.AI.ask('fund', aiFacts()) }; } catch (e) { S.ai = { state: 'error', msg: TA.AI.errMsg(e) }; }
+    paintAI();
+  }
+  function paintAI() { const el = $('#fd-ai-body'); if (el) el.innerHTML = TA.AI.html(S.ai); }
   function renderReport(root) {
     const { g, st, ev } = S, sc = ev.score;
     const bar = (v) => `<div class="pm-sbar"><i style="width:${Math.round(v)}%"></i></div>`;
@@ -264,6 +279,7 @@
           <dl class="pm-parts"><dt>Performance contre l’indice (50 %)</dt><dd>${Math.round(sc.perf)}${bar(sc.perf)}</dd><dt>Justesse des prédictions (25 %)</dt><dd>${Math.round(sc.acc)}${bar(sc.acc)}</dd><dt>Gestion du risque (25 %)</dt><dd>${Math.round(sc.risk)}${bar(sc.risk)}</dd></dl>
         </div></section>
         <section class="mt-win pm-res"><header class="mt-wh"><b>Sociétés : la vérité</b></header><div class="mt-wb"><table class="mt-tbl"><thead><tr><th>Société</th><th class="r">Actions</th><th class="r">Saison</th><th class="r">Ton rendement</th><th>Comptabilité</th></tr></thead><tbody>${picks}</tbody></table></div></section>
+        ${TA.AI && TA.AI.ok() ? `<section class="mt-win pm-notes"><header class="mt-wh"><b>Coach IA</b></header><div class="mt-wb pm-pad ai-box" id="fd-ai-body">${TA.AI.html(S.ai)}</div></section>` : ''}
         <section class="mt-win pm-att"><header class="mt-wh"><b>Compte et indice des huit sociétés</b><span class="mt-wsub"><i class="lg p"></i>Ton compte <i class="lg b"></i>Indice</span></header>${curveSVG()}</section>
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Commentaires du coach</b></header><div class="mt-wb pm-pad">${notes.map(([k, t, x]) => `<div class="fd ${k === 'good' ? 'good' : k === 'warn' ? 'warn' : ''}"><i></i><div><b>${esc(t)}</b><p>${esc(x)}</p></div></div>`).join('')}</div></section>
       </div>`;
@@ -271,6 +287,7 @@
 
   function bind() {
     document.addEventListener('click', (e) => {
+      if (e.target.closest('#fd-ai-body [data-ai-go]')) { askAI(); return; }
       const h = e.target.closest('[data-fd-home]');
       if (h) {
         const a = h.dataset.fdHome;
