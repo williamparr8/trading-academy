@@ -86,8 +86,8 @@
   function scan(node) {
     if (!node || node.nodeType !== 1) return null;
     const hit = (sel) => node.matches(sel) || node.querySelector(sel);
-    if (hit('.fd.good')) return 'good';
-    if (hit('.fd.warn, .fd.bad')) return 'bad';
+    if (hit('.fd.good, .cp-bub.good')) return 'good';
+    if (hit('.fd.warn, .fd.bad, .cp-bub.warn')) return 'bad';
     const ex = node.matches('.expl') ? node : node.querySelector('.expl');
     if (ex) { const s = ex.querySelector('strong'); if (s) return /^Bonne/.test(s.textContent) ? 'good' : /^Pas tout/.test(s.textContent) ? 'bad' : null; }
     return null;

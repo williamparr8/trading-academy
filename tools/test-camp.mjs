@@ -73,4 +73,41 @@ ok('100 niveaux, 10 chapitres de 10, sortes et banques toutes définies');
   assert(miss < 0.06, 'fenêtres sans critère trouvé : ' + (miss * 100).toFixed(1) + ' %');
   ok(count + ' questions générées (100 niveaux x 3 difficultés x 2 tirages), toutes valides ; fenêtres de repli : ' + (miss * 100).toFixed(1) + ' %');
 }
+{
+  // mise en scène : chaque niveau a sa scène, ses phrases d'exercice et sa conclusion
+  await import('../trading/js/camp-story.js');
+  await import('../trading/js/camp-story2.js');
+  const CS = globalThis.TA.CAMPSTORY, LV = globalThis.TA.CAMP.LEVELS;
+  const who = Object.keys(CS.CAST);
+  assert.equal(CS.WHERE.length, 10);
+  const balanced = (t) => (t.match(/«/g) || []).length === (t.match(/»/g) || []).length;
+  for (const l of LV) {
+    const sc = CS.SCENES[l.n];
+    assert(sc, 'scène manquante : niveau ' + l.n);
+    assert(sc.s.length >= 2 && sc.s.length <= 4, 'répliques du niveau ' + l.n);
+    assert(sc.f.length >= 2 && sc.f.every((x) => typeof x === 'string' && x.length > 10), 'phrases du niveau ' + l.n);
+    assert(sc.ok.length >= 1);
+    for (const [w, t] of sc.s.concat(sc.ok)) { assert(who.includes(w), 'personnage inconnu ' + w + ' (niveau ' + l.n + ')'); assert(t.length > 8 && balanced(t), 'texte du niveau ' + l.n + ' : ' + t.slice(0, 50)); }
+    if (sc.w) assert(sc.w.length > 6);
+    // un hôte de scène avec des réactions
+    const host = (sc.s.find(([w]) => ['C', 'L', 'K', 'N'].includes(w)) || sc.s.find(([w]) => w === 'G') || ['C'])[0];
+    assert(CS.GOOD[host] && CS.BAD[host] && CS.RETRY[host], 'réactions de ' + host + ' (niveau ' + l.n + ')');
+    // les épreuves ont au moins une phrase par exercice du premier palier
+    if (l.boss) assert(sc.f.length >= 2);
+  }
+  const bosses = LV.filter((l) => l.boss).map((l) => l.n);
+  for (const n of Object.keys(CS.CHOICES)) {
+    const d = CS.CHOICES[n];
+    assert(bosses.includes(+n), 'dilemme sur un niveau sans épreuve : ' + n);
+    assert(who.includes(d.who) && d.opts.length === 3);
+    assert(d.opts.some((o) => o.v === 1) && d.opts.some((o) => o.v === -1), 'un choix honnête et un choix fautif');
+    for (const o of d.opts) { assert([-1, 0, 1].includes(o.v)); assert(o.r.length >= 1 && o.r.every(([w, t]) => who.includes(w) && balanced(t))); }
+  }
+  assert.equal(Object.keys(CS.CHOICES).length, 10);
+  assert.equal(CS.integrity({}), 0);
+  assert.equal(CS.integrity({ 10: 0, 20: 0 }), 2);
+  assert.equal(CS.integrity({ 10: 1 }), -1);
+  for (const k of ['hi', 'mid', 'lo']) assert(CS.EPILOGUE[k].length >= 2);
+  ok('histoire : 100 scènes jouables, personnages connus, guillemets équilibrés, 10 dilemmes, épilogues');
+}
 console.log('  ' + n + ' groupes de la campagne réussis');

@@ -985,6 +985,27 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
 .rv-dots{display:inline-flex;align-items:center}
 .rv-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#cbd5e1;margin-left:5px}
 .rv-dot.on{background:var(--accent)}
+/* ===================== Campagne : mise en scène ===================== */
+.cp-line{display:flex;gap:12px;align-items:flex-start;margin:14px 0;animation:ta-rise .35s ease-out both}
+.cp-line.me{flex-direction:row-reverse}
+.cp-av{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:26px;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 6px 14px rgba(20,24,58,.25)}
+.cp-bub{background:#fff;border:1px solid #dfe3f3;border-radius:6px 20px 20px 20px;padding:10px 16px;max-width:min(680px,100%);box-shadow:0 2px 8px rgba(20,24,58,.06)}
+.cp-line.me .cp-bub{border-radius:20px 6px 20px 20px;background:linear-gradient(135deg,#eef2ff,#e0f2fe);border-color:#c7d2fe}
+.cp-bub p{margin:2px 0 0;line-height:1.5;color:#1d2540}
+.cp-bub.good strong{color:#047857}
+.cp-bub.warn strong{color:#b45309}
+.cp-who{display:block;font-size:12.5px;color:var(--accent)}
+.cp-who em{font-style:normal;color:var(--muted);font-weight:500;margin-left:4px}
+.cp-narr{margin:14px 0;padding:10px 16px;border-left:3px solid #cbd5e1;color:#4a5568;font-style:italic;line-height:1.55;animation:ta-rise .35s ease-out both}
+.cp-bub.good{border-color:#a7f3d0;background:#f0fdf8}
+.cp-bub.warn{border-color:#fde68a;background:#fffbeb}
+.cp-react{margin-top:6px}
+.cp-more{margin-top:14px}
+.cp-note{border-left:4px solid #f59e0b}
+.cp-recap .cp-next{margin:10px 0 0;font-weight:700}
+.cp-choice .cp-opts{margin-top:10px}
+.cp-play>.cp-line:first-child{margin-top:0}
+@media (max-width:560px){.cp-av{width:40px;height:40px;font-size:22px}.cp-line{gap:8px}}
 /* ===================== Ligue ===================== */
 .lg-list{display:flex;flex-direction:column;gap:6px;margin:10px 0 6px}
 .lg-row{display:grid;grid-template-columns:28px 30px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-radius:12px;background:#f3f5fd;border:1px solid transparent;font-size:14px}
@@ -1373,6 +1394,8 @@ body{word-spacing:.05em}
 <script src="js/exam.js"></script>
 <script src="js/camp-gen.js"></script>
 <script src="js/camp-data.js"></script>
+<script src="js/camp-story.js"></script>
+<script src="js/camp-story2.js"></script>
 <script src="js/camp.js"></script>
 <script src="js/glossary.js"></script>
 <script src="js/ips.js"></script>
