@@ -750,7 +750,8 @@
     const live = isLive();
     const out = TA.applyResult(App.profile, { code: App.cfg.code, level, ev, ret: sum.retPct, dd: sum.maxDD, trades: sum.trades, replay: !!App.cfg.replay, live });
     saveProfile();
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'game', ret: sum.retPct, bh: sum.bh, dd: sum.maxDD, trades: sum.trades, counted: out.counted, passed: out.passed, replay: !!App.cfg.replay, live, scenario: App.cfg.resolved } })); } catch (e) { /* rien */ }
+    const mres = TA.MISSIONS && !live ? TA.MISSIONS.evaluate(TA.MISSIONS.pick(App.cfg.challenge || App.cfg.code), { sum, trades: App.st.trades, bars: App.g.endIdx - App.g.startIdx }) : [];
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'game', missions: mres.filter((x) => x.ok).length, missionsTotal: mres.length, ret: sum.retPct, bh: sum.bh, dd: sum.maxDD, trades: sum.trades, counted: out.counted, passed: out.passed, replay: !!App.cfg.replay, live, scenario: App.cfg.resolved } })); } catch (e) { /* rien */ }
     App.endInfo = { level, ev, out, fresh: !App.cfg.replay };
     App.sum = sum;
     const res = store.get(KEY_RESULTS) || [];
@@ -822,6 +823,7 @@
       ${App.st.trades.some((t) => t.reason === 'Liquidation') ? `<section class="card"><p class="verdict">Une de tes positions a été liquidée par la plateforme : ton compte ne couvrait plus la marge exigée. La leçon sur le levier explique pourquoi et comment l’éviter.</p><div style="margin-top:10px"><button class="btn" type="button" data-lesson="leverage">Ouvrir la leçon sur le levier</button></div></section>` : ''}
       ${coachGameHTML()}
       ${disciplineHTML(App.endInfo)}
+      ${TA.MISSIONS && !isLive() ? TA.MISSIONS.endHTML(TA.MISSIONS.pick(App.cfg.challenge || App.cfg.code), { sum: s, trades: App.st.trades, bars: App.g.endIdx - App.g.startIdx }) : ''}
       ${TA.EVENTS ? TA.EVENTS.html(App.g.t[App.g.startIdx], App.g.t[App.st.idx]) : ''}
       ${publishHTML()}
       <section class="card"><h2>Ton journal</h2>${journalHTML(true)}</section>

@@ -481,12 +481,12 @@ body:not(.in-game) .mt-title{display:none}
 
 /* ---- graphique ---- */
 .mt-center{display:flex;flex-direction:column;min-width:0;min-height:0;background:#fff}
-.mt-chartbox{position:relative;flex:1;min-height:0;border:0;border-radius:0;background:#000;overflow:hidden}
-.mt-chartbox .chart{position:absolute;inset:0;height:auto;border-top:0;background:#000}
-.mt-chartbox .chart-head{position:absolute;z-index:5;left:6px;top:4px;padding:0;pointer-events:none;display:flex;flex-direction:column;gap:2px;align-items:flex-start;max-width:calc(100% - 90px);color:#d0d0d0;text-shadow:0 0 3px #000}
+.mt-chartbox{position:relative;flex:1;min-height:0;border:0;border-radius:0;background:var(--ch-bg);overflow:hidden}
+.mt-chartbox .chart{position:absolute;inset:0;height:auto;border-top:0;background:var(--ch-bg)}
+.mt-chartbox .chart-head{position:absolute;z-index:5;left:6px;top:4px;padding:0;pointer-events:none;display:flex;flex-direction:column;gap:2px;align-items:flex-start;max-width:calc(100% - 90px);color:var(--ch-text);text-shadow:0 0 3px var(--ch-bg)}
 .mt-chartbox .asset{gap:8px}
-.mt-chartbox .asset .name{font:600 12px var(--f-ui);color:#fff}
-.mt-chartbox .asset .px{font:12px var(--f-ui);color:#fff}
+.mt-chartbox .asset .name{font:600 12px var(--f-ui);color:var(--ch-text)}
+.mt-chartbox .asset .px{font:12px var(--f-ui);color:var(--ch-text)}
 .mt-chartbox .asset .chg{font:12px var(--f-ui)}
 .mt-chartbox .legend{font:11.5px var(--f-ui);color:#b0b0b0;gap:4px 10px}
 .mt-chartbox .legend b{color:#fff}
@@ -710,6 +710,15 @@ tr[data-fd-sel]{cursor:pointer}
 .ex-nav button.done{background:var(--accent-a)}.ex-nav button.cur{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
 .pm-ask{border:2px solid var(--accent)}
 .pm-ask .ex-opt{display:block;width:100%;margin-top:6px}
+#mt-missions{flex:0 0 auto;border-top:1px solid #a0a0a0}
+.mt-mis{list-style:none;margin:0;padding:4px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px}
+.mt-mis li{display:flex;gap:6px;align-items:flex-start}.mt-mis .ic{flex:none;width:12px;text-align:center;font-weight:700;color:var(--muted)}
+.mt-mis li.ok .ic{color:var(--up)}
+html[data-chart="white"]{--ch-bg:#ffffff;--ch-grid:#dcdcdc;--ch-text:#1a1a1a;--ch-axis:#9a9a9a;--ch-up:#1a8f4f;--ch-down:#d1222e;--ch-buy:#0b3fd6;--ch-sell:#d1222e;--ch-accent:#0066cc;--ch-warn:#b36b00;--ch-violet:#6b3fb5;--ch-cyan:#00798c;--ch-up-a:rgba(26,143,79,.45);--ch-down-a:rgba(209,34,46,.45);--ch-warn-a:rgba(179,107,0,.18)}
+html[data-chart="green"]{--ch-bg:#000000;--ch-grid:#0f3a0f;--ch-text:#8dff8d;--ch-axis:#2d7a2d;--ch-up:#39ff14;--ch-down:#ff3131;--ch-buy:#39ff14;--ch-sell:#ff3131;--ch-accent:#7dff7d;--ch-warn:#f0e04a;--ch-violet:#c9a4ff;--ch-cyan:#4cf0d9;--ch-up-a:rgba(57,255,20,.4);--ch-down-a:rgba(255,49,49,.4);--ch-warn-a:rgba(240,224,74,.18)}
+html[data-chart="classic"]{--ch-bg:#000000;--ch-grid:#404040;--ch-text:#ffffff;--ch-axis:#808080;--ch-up:#00ff00;--ch-down:#ff0000;--ch-buy:#00bfff;--ch-sell:#ff0000;--ch-accent:#ffff00;--ch-warn:#ffa500;--ch-violet:#ff66ff;--ch-cyan:#00ffff;--ch-up-a:rgba(0,255,0,.4);--ch-down-a:rgba(255,0,0,.4);--ch-warn-a:rgba(255,165,0,.18)}
+html[data-chart="white"] .mt-chartbox .pos{color:var(--up)}html[data-chart="white"] .mt-chartbox .neg{color:var(--down)}
+html[data-chart="white"] .mt-chartbox .legend b{color:#000}
 .fd-quote{margin:0;padding:6px 10px;border-left:3px solid var(--accent);background:#f6f6f6;font-style:italic;font-size:13px}
 .pm-letter p{margin:0 0 8px;max-width:78ch}
 .home-modes{display:flex;flex-wrap:wrap;width:100%}.home-modes button{flex:1 1 auto}
@@ -872,6 +881,10 @@ body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm=
           </div>
           <div class="mt-wtabs"><span class="mt-wtab on">Symboles</span><span class="mt-wtab">Détails</span></div>
         </section>
+        <section class="mt-win" id="mt-missions">
+          <header class="mt-wh"><b>Missions</b></header>
+          <div class="mt-wb"><ul class="mt-mis" id="mt-mis-list"></ul></div>
+        </section>
         <section class="mt-win" id="mt-nav">
           <header class="mt-wh"><b>Navigateur</b><button class="mt-x" type="button" data-close="nav" aria-label="Fermer le navigateur">×</button></header>
           <div class="mt-wb" id="mt-nav-tree"></div>
@@ -1029,6 +1042,7 @@ body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm=
 <script src="js/engine.js"></script>
 <script src="js/chart.js"></script>
 <script src="js/events.js"></script>
+<script src="js/missions.js"></script>
 <script src="js/lessons.js"></script>
 <script src="js/lessons2.js"></script>
 <script src="js/coach.js"></script>

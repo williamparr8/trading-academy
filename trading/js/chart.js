@@ -28,6 +28,16 @@
     update() { if (this.req) this.req(); }
   }
 
+  // palette du graphique : lue dans les variables CSS --ch-* (jeux de couleurs : noir, blanc, vert, classique)
+  const readPalette = () => ({
+    panel: css('--ch-bg') || css('--panel'), muted: css('--ch-text') || css('--muted'), grid: css('--ch-grid') || css('--grid'), line: css('--ch-axis') || css('--line-2'),
+    up: css('--ch-up') || css('--up'), down: css('--ch-down') || css('--down'), upA: css('--ch-up-a') || css('--up-a'), downA: css('--ch-down-a') || css('--down-a'),
+    buy: css('--ch-buy') || css('--up'), sell: css('--ch-sell') || css('--down'),
+    accent: css('--ch-accent') || css('--accent'), warn: css('--ch-warn') || css('--warn'), violet: css('--ch-violet') || css('--violet'), cyan: css('--ch-cyan') || css('--cyan'),
+    warnA: css('--ch-warn-a') || css('--warn-a'), text: css('--ch-text') || css('--text'),
+    mono: css('--f-ui') || css('--f-mono'),
+  });
+
   TA.PriceChart = class PriceChart {
     constructor(el, opts = {}) {
       this.el = el;
@@ -36,14 +46,7 @@
       this.inds = []; this.series = []; this.updaters = []; this.lines = []; this._cache = new Map();
       this.tool = 'cursor'; this.sel = null; this.pending = null; this.hover = null; this.drag = null; this.dragDraw = null;
       this.ticket = { sl: null, tp: null };
-      const C = (this.C = {
-        panel: css('--ch-bg') || css('--panel'), muted: css('--ch-text') || css('--muted'), grid: css('--ch-grid') || css('--grid'), line: css('--ch-axis') || css('--line-2'),
-        up: css('--ch-up') || css('--up'), down: css('--ch-down') || css('--down'), upA: css('--ch-up-a') || css('--up-a'), downA: css('--ch-down-a') || css('--down-a'),
-        buy: css('--ch-buy') || css('--up'), sell: css('--ch-sell') || css('--down'),
-        accent: css('--ch-accent') || css('--accent'), warn: css('--ch-warn') || css('--warn'), violet: css('--ch-violet') || css('--violet'), cyan: css('--ch-cyan') || css('--cyan'),
-        warnA: css('--ch-warn-a') || css('--warn-a'), text: css('--ch-text') || css('--text'),
-        mono: css('--f-ui') || css('--f-mono'),
-      });
+      const C = (this.C = readPalette());
       this.pal = [C.warn, C.accent, C.violet, C.cyan, '#e879a6', '#a3b3c4'];
       const nf = (this.nf = new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       this.chart = LW.createChart(el, {
@@ -166,6 +169,19 @@
         if (this.ticket.tp != null) add(this.ticket.tp, C.up, 'T/P (ordre)', LS.Dashed, 'tp', 'ticket');
       }
       for (const o of st.orders) add(o.price, o.side === 'buy' ? C.buy : C.sell, (o.side === 'buy' ? 'buy ' : 'sell ') + (o.type === 'limit' ? 'limit ' : 'stop ') + o.qty, LS.Dashed);
+    }
+
+    // changement de jeu de couleurs : on relit la palette et on redessine
+    applyScheme() {
+      const C = Object.assign(this.C, readPalette());
+      this.chart.applyOptions({
+        layout: { background: { type: LW.ColorType.Solid, color: C.panel }, textColor: C.muted, panes: { separatorColor: C.line, separatorHoverColor: C.grid } },
+        grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
+        rightPriceScale: { borderColor: C.line }, timeScale: { borderColor: C.line },
+      });
+      this.candle.applyOptions({ upColor: C.up, downColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineColor: C.buy });
+      this.pal = [C.warn, C.accent, C.violet, C.cyan, '#e879a6', '#a3b3c4'];
+      if (this.g && this.st) { this._rebuild(); this.refresh(this.st); }
     }
 
     /* --- zoom --- */

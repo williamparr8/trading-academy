@@ -13,6 +13,7 @@
   ];
   CR.BADGES = [
     { id: 'first', name: 'Premier trade', desc: 'Termine une partie de trading.' },
+    { id: 'missions', name: 'Missions accomplies', desc: 'Réussis les trois missions d’une partie.' },
     { id: 'beat', name: 'Meilleur que l’acheter-conserver', desc: 'Bats le rendement de l’actif sur une partie.' },
     { id: 'discipline', name: 'Discipliné', desc: 'Termine une partie qui remplit tous les critères de discipline.' },
     { id: 'crisis', name: 'Survivant des crises', desc: 'Finis en gain un scénario de krach ou de pandémie.' },
@@ -76,6 +77,8 @@
       if (e.counted && e.passed) add(40 * f, 'partie disciplinée');
       if (e.ret > e.bh) add(15 * f, 'meilleur que l’acheter-conserver');
       if (e.dd != null && e.dd > -0.1) add(10 * f, 'perte maximale sous 10 %');
+      if (e.missions) add(e.missions * 10 * f, `${e.missions} mission${e.missions > 1 ? 's' : ''} sur ${e.missionsTotal}`);
+      if (e.missions && e.missions === e.missionsTotal && e.missionsTotal >= 3) { add(20 * f, 'toutes les missions'); out.badges.push('missions'); }
       out.badges.push('first');
       if (e.ret > e.bh && e.trades > 0) out.badges.push('beat');
       if (e.counted && e.passed) out.badges.push('discipline');

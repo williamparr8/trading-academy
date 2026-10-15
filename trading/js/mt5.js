@@ -82,6 +82,18 @@
   function closeModal() { const m = $('#mt-modal'); if (m) m.remove(); }
 
   /* ---------- menus ---------- */
+  // jeux de couleurs du graphique (comme les « schémas » de MetaTrader)
+  const SCHEMES = [['', 'Noir (par défaut)'], ['white', 'Blanc'], ['green', 'Vert sur noir'], ['classic', 'Classique']];
+  let scheme = '';
+  try { scheme = localStorage.getItem('ta:chart') || ''; } catch (e) { /* rien */ }
+  function setScheme(id) {
+    scheme = SCHEMES.some((s) => s[0] === id) ? id : '';
+    if (scheme) document.documentElement.dataset.chart = scheme; else delete document.documentElement.dataset.chart;
+    try { localStorage.setItem('ta:chart', scheme); } catch (e) { /* rien */ }
+    const a = A();
+    if (a && a.chart && a.chart.applyScheme) a.chart.applyScheme();
+  }
+  if (scheme) document.documentElement.dataset.chart = scheme;
   const nextOff = () => { const b = $('#btn-next'); return !b || b.hidden || b.disabled; };
   const MENUS = [
     { id: 'file', label: 'Fichier', items: [
@@ -114,6 +126,8 @@
       { t: 'Gomme', do: () => tool('erase') },
       '-',
       { t: 'Supprimer tous les objets', do: () => click('#draw-clear') },
+      '-',
+      ...SCHEMES.map(([id, name]) => ({ t: 'Couleurs : ' + name, chk: () => scheme === id, do: () => setScheme(id) })),
     ] },
     { id: 'tools', label: 'Outils', items: [
       { t: 'Nouvel ordre', kb: 'F9', do: () => { S.order = true; applyLayout(); const q = $('#t-qty'); if (q && q.offsetParent) q.focus(); } },
@@ -259,6 +273,16 @@
     const sr = $('#mt-st-r'); if (sr) sr.textContent = g.live ? 'Cotes publiées' : 'Données historiques';
     // le tutoriel a besoin de voir la fenêtre d'ordre et la boîte à outils
     if (a.tuto && (!S.order || !S.tool)) { S.order = true; S.tool = true; applyLayout(); }
+    // missions de la partie : statut en direct
+    const list = $('#mt-mis-list');
+    if (list) {
+      if (a.tuto || !TA.MISSIONS || !g.endIdx || g.live) list.innerHTML = '<li class="dim">Aucune mission dans ce mode.</li>';
+      else {
+        const dd = TA.drawdown(st.equity), m = TA.metrics(g, st);
+        const ctx = { sum: { maxDD: dd.max, retPct: m.totalPct, bh: g.c[i] / g.c[g.startIdx] - 1, trades: st.trades.length }, trades: st.trades, bars: g.endIdx - g.startIdx };
+        list.innerHTML = TA.MISSIONS.evaluate(TA.MISSIONS.pick((a.cfg && (a.cfg.challenge || a.cfg.code)) || 'x'), ctx).map((x) => `<li class="${x.ok ? 'ok' : ''}"><span class="ic">${x.ok ? '✓' : '○'}</span><span>${esc(x.text)}</span></li>`).join('');
+      }
+    }
     MT.onTicket(a);
   };
 
