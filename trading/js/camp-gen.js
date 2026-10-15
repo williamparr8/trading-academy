@@ -401,7 +401,7 @@
   /* ----- fondamental ----- */
   const fdGameQ = (ctx) => ctx.FD.newGame('CQ' + Math.floor(ctx.rng() * 1e9), { quarters: 8, agg: ctx.aggN });
   K.stmtCalc = (ctx, p) => {
-    const { rng, FD } = ctx, g = fdGameQ(ctx), c = pick(rng, g.cos.filter((x) => !x.isAgg)), k = g.H - 1 + RI(rng, 0, 4), q = c.q[k], q4 = c.q[k - 4];
+    const { rng, FD } = ctx, g = fdGameQ(ctx), c = pick(rng, g.cos.filter((x) => !x.isAgg && x.id !== 'VMB')), k = g.H - 1 + RI(rng, 0, 4), q = c.q[k], q4 = c.q[k - 4];   // VMB (marge naissante) donnerait des ratios extrêmes
     const m = (x) => Math.round(x), what = p.what || 'margin';
     const rev = m(q.rev), op = m(q.opInc), ni = m(q.ni), cfo = m(q.cfo), capex = m(q.capex), nd = m(q.nd), bv = m(q.bv), div = m(q.div), rec = m(q.rec), eb = m(q.opInc + 0.03 * q.revTrue);
     const tbl = `<table class="mt-tbl"><tbody><tr><td>Revenus du trimestre</td><td class="r">${money(rev)} M$</td></tr><tr><td>Résultat d’exploitation</td><td class="r">${money(op)} M$</td></tr><tr><td>BAIIA du trimestre</td><td class="r">${money(eb)} M$</td></tr><tr><td>Bénéfice net</td><td class="r">${money(ni)} M$</td></tr><tr><td>Dividendes versés</td><td class="r">${money(div)} M$</td></tr><tr><td>Flux d’exploitation</td><td class="r">${money(cfo)} M$</td></tr><tr><td>Investissements</td><td class="r">${money(capex)} M$</td></tr><tr><td>Créances clients</td><td class="r">${money(rec)} M$</td></tr><tr><td>Dette nette</td><td class="r">${money(nd)} M$</td></tr><tr><td>Capitaux propres</td><td class="r">${money(bv)} M$</td></tr><tr><td>BPA du trimestre</td><td class="r">${f(q.eps)} $</td></tr><tr><td>BPA il y a un an (même trimestre)</td><td class="r">${f(q4.eps)} $</td></tr></tbody></table>`;
@@ -585,10 +585,14 @@
     return num(`Un portefeuille a rapporté ${rp} % par an avec une volatilité de ${sd} %. Le taux sans risque est de ${rf} %. Quel est son ratio de Sharpe ?`, (rp - rf) / sd, '', 2, { expl: `Sharpe = (rendement − taux sans risque) ÷ volatilité = (${rp} − ${rf}) ÷ ${sd} = ${f((rp - rf) / sd)}.`, hint: 'Soustrais d’abord le taux sans risque.' });
   };
   K.ddCalc = (ctx) => {
-    const { rng } = ctx, base = 100, a = [base]; let x = base;
-    for (let i = 0; i < 6; i++) { x = Math.round(x * (1 + R(rng, -0.12, 0.1))); a.push(x); }
-    let pk = a[0], mx = 0, pkv = a[0], tv = a[0];
-    for (const v of a) { if (v > pk) pk = v; const d = (pk - v) / pk; if (d > mx) { mx = d; pkv = pk; tv = v; } }
+    const { rng } = ctx;
+    let a, mx = 0, pkv = 100, tv = 100;
+    for (let t = 0; t < 30 && mx < 0.03; t++) {   // on veut un vrai recul
+      a = [100]; let x = 100;
+      for (let i = 0; i < 6; i++) { x = Math.round(x * (1 + R(rng, -0.12, 0.1))); a.push(x); }
+      let pk = a[0]; mx = 0;
+      for (const v of a) { if (v > pk) pk = v; const d = (pk - v) / pk; if (d > mx) { mx = d; pkv = pk; tv = v; } }
+    }
     return num(`Valeur d’un portefeuille à sept dates successives : ${a.join(' → ')}. Quelle est la perte maximale depuis un sommet (en %) ?`, mx * 100, '%', 1, { expl: `Le pire recul va de ${pkv} à ${tv} : (${pkv} − ${tv}) ÷ ${pkv} = ${f(mx * 100, 1)} %.`, hint: 'Repère le sommet puis le creux qui suit, avant tout nouveau sommet.' });
   };
   K.irCalc = (ctx) => {

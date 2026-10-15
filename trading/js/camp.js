@@ -106,7 +106,7 @@
     play() {
       const q = S.qs[S.i], T = CAMP.TIERS[S.tier], a = S.answered, l = LV[S.n - 1];
       const input = q.type === 'mcq'
-        ? `<div class="cp-opts">${q.opts.map((o, k) => `<button type="button" class="ex-opt${a ? (k === q.a ? ' good' : k === a.v ? ' bad' : '') : ''}" data-cp-a="${k}"${a ? ' disabled' : ''}>${esc(o)}</button>`).join('')}</div>`
+        ? `<div class="cp-opts">${q.opts.map((o, k) => `<button type="button" class="ex-opt${a ? (k === q.a ? ' good' : String(k) === String(a.v) ? ' bad' : '') : ''}" data-cp-a="${k}"${a ? ' disabled' : ''}>${esc(o)}</button>`).join('')}</div>`
         : `<div class="cp-num"><input id="cp-in" inputmode="decimal" autocomplete="off" placeholder="Ta réponse"${a ? ' disabled value="' + esc(a.v) + '"' : ''}><span>${esc(q.num.unit)}</span>${a ? '' : '<button class="btn primary" type="button" data-cp="submit">Valider</button>'}</div>`;
       return `<div class="mt-bar pm-bar"><b class="pm-title">Niveau ${l.n} · ${esc(l.title)} · ${T.name}</b><span class="sp"></span><div class="mt-prog"><div class="ptxt">Question ${S.i + 1} sur ${S.qs.length}</div><div class="prog"><i style="width:${(S.i / S.qs.length) * 100}%"></i></div></div><button class="btn ghost" type="button" data-cp="level">Quitter</button></div>
         <div class="cp-play"><section class="mt-win"><header class="mt-wh"><b>Question ${S.i + 1}</b></header><div class="mt-wb pm-pad">
