@@ -67,7 +67,9 @@
     }
     const total = taken.reduce((s, r) => s + r.r, 0), wins = taken.filter((r) => r.r > 0).length;
     const best = rounds.map((r) => Math.max(r.alt.long.r, r.alt.short.r, 0));
-    return { n: rounds.length, taken: taken.length, passes: rounds.length - taken.length, total, wins, win: taken.length ? wins / taken.length : null,
+    // règle naïve « suivre la tendance » sur les mêmes graphiques : la référence à battre
+    const rule = rounds.reduce((s, r) => s + (r.ctx.trend === 'haussière' ? r.alt.long.r : r.ctx.trend === 'baissière' ? r.alt.short.r : 0), 0);
+    return { n: rounds.length, taken: taken.length, passes: rounds.length - taken.length, total, rule, wins, win: taken.length ? wins / taken.length : null,
       exp: taken.length ? total / taken.length : null, by, regret: best.reduce((s, x) => s + x, 0) - total };
   };
   FL.notes = function (sm) {
@@ -82,6 +84,7 @@
       else if (avg >= 0.5) out.push({ kind: 'good', text: `${v.n} ${dir}s ${lab} : +${fmt(avg)} R en moyenne. Voilà un avantage à répéter.` });
     }
     if (sm.taken && sm.passes === 0) out.push({ kind: 'info', text: 'Tu as pris toutes les occasions. Passer est une décision : sans avantage visible, ne rien faire protège le capital.' });
+    if (sm.n >= 5) out.push({ kind: sm.total > sm.rule ? 'good' : 'info', text: `Règle simple « suivre la tendance » sur les mêmes graphiques : ${sm.rule >= 0 ? '+' : ''}${fmt(sm.rule)} R. ${sm.total > sm.rule ? 'Tu fais mieux que cette règle : ton jugement ajoute de la valeur.' : 'Elle fait mieux ou autant que toi : sans avantage prouvé, suivre une règle simple est un excellent point de départ.'}` });
     if (sm.exp != null) out.push({ kind: sm.exp > 0 ? 'good' : 'warn', text: `Espérance : ${sm.exp > 0 ? '+' : ''}${fmt(sm.exp)} R par transaction avec ${Math.round(sm.win * 100)} % de réussite. Avec un objectif à 2 R, il suffit de gagner 34 % du temps pour être rentable avant les frais.` });
     return out;
   };
@@ -93,7 +96,8 @@
   const f2 = (x) => x.toFixed(2).replace('.', ',');
   const sr = (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(2).replace('.', ',') + ' R';
   const cls = (x) => (x > 0.005 ? 'pos' : x < -0.005 ? 'neg' : '');
-  const S = { rounds: [], r: 0, cur: null, rng: null, code: '', phase: 'idle', index: null, cache: new Map(), busy: false, msg: '' };
+  const S = { rounds: [], r: 0, cur: null, rng: null, code: '', phase: 'idle', index: null, cache: new Map(), busy: false, msg: '', timed: false, timer: null, left: 0 };
+  const LIMIT = 20;   // secondes par tour en mode chrono
   const HKEY = 'ta:flashhist';
   const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* rien */ } } };
   const APP = () => window.TA_APP;
@@ -115,13 +119,31 @@
     S.cur = { id: p.asset.id, d, i, ctx, alt: { long: FL.outcome(d, i, 1), short: FL.outcome(d, i, -1) } };
     S.phase = 'choose';
   }
-  async function start(code) {
+  function stopTimer() { if (S.timer) { clearInterval(S.timer); S.timer = null; } }
+  function runTimer() {
+    stopTimer();
+    if (!S.timed || S.phase !== 'choose') return;
+    S.left = LIMIT;
+    S.timer = setInterval(() => {
+      S.left -= 0.1;
+      const el = $('#fl-timer');
+      if (el) { el.style.width = Math.max(0, (S.left / LIMIT) * 100) + '%'; el.parentNode.title = Math.ceil(Math.max(0, S.left)) + ' s'; }
+      if (S.left <= 0) { stopTimer(); timeout(); }
+    }, 100);
+  }
+  function timeout() {
+    const c = S.cur;
+    S.rounds.push({ id: c.id, dir: 0, r: -0.25, exit: 'temps écoulé', bars: 0, ctx: c.ctx, alt: c.alt });
+    S.phase = 'reveal'; render();
+  }
+  async function start(code, timed) {
     if (S.busy) return;
     S.busy = true;
     try {
+      S.timed = !!timed;
       S.code = code || newCode(); S.rng = FL.rng(S.code); S.rounds = []; S.r = 0; S.msg = '';
       await newRound();
-      APP().show('flash'); render();
+      APP().show('flash'); render(); runTimer();
     } catch (e) { const el = $('#fl-err'); if (el) el.textContent = 'Impossible de lancer : ' + e.message; }
     S.busy = false;
   }
@@ -158,13 +180,13 @@
     const total = rounds.reduce((s, r) => s + r.r, 0);
     root.innerHTML = `
       <div class="mt-bar pm-bar"><b class="pm-title">Flash technique · tour ${Math.min(S.r + 1, ROUNDS)} sur ${ROUNDS}</b><span class="sp"></span>
-        <span class="fd-top">Total <b class="${cls(total)}">${sr(total)}</b> · série <b>${streak()}</b></span><span class="mt-sep"></span>
+        <span class="fd-top">Total <b class="${cls(total)}">${sr(total)}</b> · série <b>${streak()}</b></span>${S.timed && S.phase === 'choose' ? '<span class="fl-clock" title="Temps restant"><i id="fl-timer"></i></span>' : ''}<span class="mt-sep"></span>
         <button class="btn ghost" type="button" data-fl="quit">Quitter</button></div>
       <div class="pm-grid fl-grid"><section class="pm-center"><div class="mt-win"><header class="mt-wh"><b>${rev ? esc(cur.id) + ' · ' + esc(cur.d.s || cur.id) : 'Actif caché'}</b><span class="mt-wsub"><i class="lg b"></i>MM 20 <i class="lg p"></i>MM 50 · barres vertes/rouges = passé, blanches = futur</span></header>
           <div class="pm-chart">${chart(d, cur.i, upto, rev && o ? o : null)}</div>
           <div class="fl-ctx"><span>Contexte</span> <b>tendance ${esc(cur.ctx.trend)}</b> · <b>RSI ${Math.round(cur.ctx.rsiVal)}</b>${cur.ctx.breakout !== 'aucune' ? ' · <b>' + esc(cur.ctx.breakout) + '</b>' : ''}</div></div></section>
         <aside class="mt-win pm-right"><header class="mt-wh"><b>Ta décision</b></header><div class="mt-wb pm-pad">
-          ${rev && last ? `<div class="fl-res ${cls(last.r)}"><b>${sr(last.r)}</b><p>${last.dir === 0 ? 'Tu es passé.' : (last.dir === 1 ? 'Achat' : 'Vente à découvert') + ' : sortie par ' + last.exit + ' après ' + last.bars + ' barres.'}</p></div>
+          ${rev && last ? `<div class="fl-res ${cls(last.r)}"><b>${sr(last.r)}</b><p>${last.dir === 0 ? (last.exit === 'temps écoulé' ? 'Temps écoulé : passer sans décider coûte 0,25 R.' : 'Tu es passé.') : (last.dir === 1 ? 'Achat' : 'Vente à découvert') + ' : sortie par ' + last.exit + ' après ' + last.bars + ' barres.'}</p></div>
             <p class="hint">Si tu avais acheté : <b>${sr(cur.alt.long.r)}</b> · vendu à découvert : <b>${sr(cur.alt.short.r)}</b></p>
             <p class="hint">${last.dir === 0 ? (Math.max(cur.alt.long.r, cur.alt.short.r) < 0.5 ? 'Bonne décision : aucune des deux directions ne payait.' : 'Une occasion était là.') : last.r > 0 ? 'Bien joué.' : 'Perte contrôlée : le stop a fait son travail.'}</p>
             <button class="btn primary big" type="button" data-fl="next">${S.r + 1 >= ROUNDS ? 'Voir le bilan' : 'Tour suivant'} ▶</button>`
@@ -178,18 +200,20 @@
   function decide(dir) {
     const c = S.cur, o = dir === 0 ? { r: 0, exit: 'passé', bars: 0 } : FL.outcome(c.d, c.i, dir);
     S.rounds.push({ id: c.id, dir, r: o.r, exit: o.exit, bars: o.bars, ctx: c.ctx, alt: c.alt });
+    stopTimer();
     S.phase = 'reveal'; render();
   }
   async function next() {
     S.r++;
     if (S.r >= ROUNDS) { finish(); return; }
-    try { await newRound(); S.msg = ''; render(); } catch (e) { S.msg = 'Cotes indisponibles : ' + e.message; render(); }
+    try { await newRound(); S.msg = ''; render(); runTimer(); } catch (e) { S.msg = 'Cotes indisponibles : ' + e.message; render(); }
   }
   function finish() {
+    stopTimer();
     S.phase = 'done';
     const sm = FL.summary(S.rounds), h = store.get(HKEY) || [];
     h.unshift({ code: S.code, total: sm.total, win: sm.win }); store.set(HKEY, h.slice(0, 8));
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'flash', total: sm.total, taken: sm.taken, wins: sm.wins, code: S.code } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'flash', total: sm.total, taken: sm.taken, wins: sm.wins, code: S.code, timed: S.timed } })); } catch (e) { /* rien */ }
     render(); renderCard();
   }
   function renderSummary(root) {
@@ -213,19 +237,20 @@
       <p class="hint">15 graphiques réels cachés, une décision chacun : acheter, vendre à découvert ou passer. Résultat en R, puis tes statistiques par tendance, RSI et cassure. Dix minutes pour savoir où est ton avantage.</p>
       <label class="field"><span>Code (facultatif)</span><input id="fl-code" maxlength="12" placeholder="FL-XXXX-XXXX" spellcheck="false" autocomplete="off"></label>
       <p class="err" id="fl-err" role="alert"></p>
+      <label class="chk"><input type="checkbox" id="fl-timed"> Mode chrono : 20 secondes par tour (passer si le temps expire : −0,25 R)</label>
       <button class="btn primary big" type="button" data-fl-home="start">Lancer 15 tours</button>
       ${h.length ? `<p class="sub">Dernières séances</p><div class="glist">${h.slice(0, 4).map((x) => `<div class="grow"><span class="mono">${esc(x.code)}</span><span class="mono ${cls(x.total)}">${sr(x.total)}</span><span class="mono">${x.win == null ? '—' : Math.round(x.win * 100) + ' %'}</span></div>`).join('')}</div>` : ''}`;
   }
   document.addEventListener('click', (e) => {
     const h = e.target.closest('[data-fl-home]');
-    if (h) { start(($('#fl-code').value || '').trim().toUpperCase()); return; }
+    if (h) { start(($('#fl-code').value || '').trim().toUpperCase(), ($('#fl-timed') || {}).checked); return; }
     const b = e.target.closest('[data-fl]');
     if (!b) return;
     const a = b.dataset.fl;
     if (a === 'long') decide(1); else if (a === 'short') decide(-1); else if (a === 'pass') decide(0);
     else if (a === 'next') next();
-    else if (a === 'quit') { S.phase = 'idle'; renderCard(); APP().show('home'); }
-    else if (a === 'replay') start(S.code);
+    else if (a === 'quit') { stopTimer(); S.phase = 'idle'; renderCard(); APP().show('home'); }
+    else if (a === 'replay') start(S.code, S.timed);
   });
   renderCard();
 })(typeof window !== 'undefined' ? window : globalThis);

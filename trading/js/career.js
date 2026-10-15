@@ -106,6 +106,7 @@
       if (e.accuracy != null && e.accuracy >= 0.6 && e.predictions >= 6) out.badges.push('oracle');
     } else if (e.kind === 'flash') {
       add(20, 'séance terminée'); add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
+      if (e.timed) add(15, 'mode chrono');
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
       out.badges.push('flash1'); if (e.total >= 5) out.badges.push('flashPos');
     } else if (e.kind === 'ips') {
@@ -256,6 +257,7 @@
       ${nextI >= 0 ? `<div class="cr-next"><span>Prochaine étape</span><b>${esc(pth[nextI].t)}</b><button class="btn sm primary" type="button" data-career="path" data-i="${nextI}">Y aller</button></div>` : ""}<details class="cr-det"><summary>Parcours recommandé · ${pth.filter((x) => x.done).length} sur ${pth.length}</summary><ul class="cr-goals cr-path">${pth.map((x, i) => `<li class="${x.done ? 'ok' : i === nextI ? 'next' : ''}"><span class="ic">${x.done ? '✓' : i === nextI ? '▶' : '○'}</span><span>${esc(x.t)}</span>${i === nextI ? `<button class="btn sm primary" type="button" data-career="path" data-i="${i}">Y aller</button>` : ''}</li>`).join('')}</ul></details>
       <p class="sub">Objectifs du jour</p><ul class="cr-goals">${goals}</ul>
       <details class="cr-det"><summary>Activité · ${(st.active || []).length} jour${(st.active || []).length > 1 ? 's' : ''}</summary>${heat(st)}</details>
+      <div class="acts" style="margin-top:8px"><button class="btn sm ghost" type="button" data-career="export">Exporter ma progression</button><label class="btn sm ghost" for="cr-import" style="cursor:pointer">Importer</label><input type="file" id="cr-import" accept=".json,application/json" hidden></div>
       <details class="cr-det"><summary>Badges · ${Object.keys(st.badges).length} sur ${CR.BADGES.length}</summary><div class="cr-badges">${badges}</div></details>`;
   }
   // sélecteur de mode : l'accueil ne montre que les cartes du mode choisi
@@ -270,6 +272,46 @@
     const paint = () => { document.body.dataset.hm = cur; seg.innerHTML = modes.map(([id, n]) => `<button type="button" data-hmode="${id}" class="${id === cur ? 'on' : ''}">${n}</button>`).join(''); };
     seg.addEventListener('click', (e) => { const b = e.target.closest('[data-hmode]'); if (!b) return; cur = b.dataset.hmode; try { localStorage.setItem('ta:homemode', cur); } catch (err) { /* rien */ } paint(); });
     card.after(seg); paint();
+  })();
+  // sauvegarde de la progression : export et import d'un fichier (le navigateur peut tout oublier)
+  const KEYS = ['ta:career', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode'];
+  function exportProgress() {
+    const data = {};
+    for (const k of KEYS) { try { const v = localStorage.getItem(k); if (v != null) data[k] = v; } catch (e) { /* rien */ } }
+    const blob = new Blob([JSON.stringify({ app: 'trading-academy', v: 1, data })], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'trading-academy-progression.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  async function importProgress(file) {
+    try {
+      const j = JSON.parse(await file.text());
+      if (!j || j.app !== 'trading-academy' || !j.data) throw new Error('format');
+      let n = 0;
+      for (const k of KEYS) if (typeof j.data[k] === 'string') { JSON.parse(j.data[k]); localStorage.setItem(k, j.data[k]); n++; }
+      renderCard();
+      toast({ xp: 0, why: [n + ' éléments de progression restaurés'], badges: [], promoted: false });
+    } catch (e) { toast({ xp: 0, why: ['Fichier de progression invalide'], badges: [], promoted: false }); }
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-career="export"]')) exportProgress(); });
+  document.addEventListener('change', (e) => { if (e.target.id === 'cr-import' && e.target.files[0]) { importProgress(e.target.files[0]); e.target.value = ''; } });
+  // première visite : présentation des modes
+  (function welcome() {
+    let seen = false;
+    try { seen = !!localStorage.getItem('ta:welcome'); } catch (e) { seen = true; }
+    if (seen) return;
+    const m = document.createElement('div');
+    m.className = 'mt-modal'; m.id = 'cr-welcome';
+    m.innerHTML = `<div role="dialog" aria-label="Bienvenue"><header><span>Bienvenue sur Trading Academy</span></header><div class="mb">
+      <p>Un seul simulateur, trois métiers à apprendre sur de vrais marchés historiques, sans risquer un sou :</p>
+      <p><b>Trader.</b> Parties d’entraînement, Flash technique, Chasse aux figures.</p>
+      <p><b>Analyste.</b> Saison des résultats : états financiers, consensus, signaux comptables.</p>
+      <p><b>Gestionnaire.</b> Mandats de clients, énoncé de politique, risque, déontologie, rapport façon CFA.</p>
+      <p>Choisis un mode en haut de l’accueil. Ta carrière (points, grades, badges) te propose un parcours : suis la prochaine étape.</p></div>
+      <div class="mf"><button class="btn primary" type="button" data-career="welcome">Commencer</button></div></div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', (e) => { if (e.target.closest('[data-career="welcome"]') || e.target === m) { try { localStorage.setItem('ta:welcome', '1'); } catch (err) { /* rien */ } m.remove(); } });
   })();
   window.addEventListener('ta:xp', (ev) => {
     try { const res = CR.apply(ev.detail || {}); toast(res); renderCard(); } catch (e) { /* la progression ne doit jamais casser un module */ }
