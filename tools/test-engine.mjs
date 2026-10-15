@@ -1170,5 +1170,6 @@ function synth(bars) {
   ok('modules du tutoriel : parcours à la baisse jusqu’au résultat, étapes des indicateurs, signaux présents dans l’historique');
 }
 
+await import('./test-pm.mjs');   // gestionnaire de portefeuille
 console.log(`\n${n} groupes de tests reussis`);
 console.log(TA.fmt.money(1234.5), '|', TA.fmt.smoney(-12.3), '|', TA.fmt.spct(0.0321), '|', TA.fmt.date(TA.dayFromISO('2008-09-15')));

@@ -602,6 +602,50 @@ body:not(.in-game) .mt-title{display:none}
   .mt-title{display:none}
 }
 .mt-dbtn.picked{outline:3px solid #111;outline-offset:-3px}
+/* ---- gestionnaire de portefeuille ---- */
+.pm{display:flex;flex-direction:column;background:var(--bg)}
+.pm-grid{display:grid;grid-template-columns:290px minmax(0,1fr) 280px;gap:1px;background:#a0a0a0;border-bottom:1px solid #a0a0a0;min-height:540px}
+.pm-grid>*{min-width:0;background:#fff}
+.pm-left,.pm-right{display:flex;flex-direction:column}
+.pm-center{display:flex;flex-direction:column;gap:1px;background:#a0a0a0}
+.pm-center>.mt-win{background:#fff}
+.pm-pad{padding:8px 10px;font-size:12.5px}
+.pm-pad p{margin:0 0 6px}
+.pm-title{font-size:13px}
+.pm-chart{background:#000;padding:6px 6px 2px}
+.pm-svg{display:block;width:100%;height:auto}
+.pm-svg.dd{margin-top:2px}
+.pm-svg .gl{stroke:#3a3a3a;stroke-dasharray:2 3;stroke-width:1;vector-effect:non-scaling-stroke}
+.pm-svg .gl.v{stroke:#2a2a2a}
+.pm-svg text{fill:#9a9a9a;font:10px var(--f-ui)}
+.pm-svg .lp{fill:none;stroke:#4f9dff;stroke-width:1.8;vector-effect:non-scaling-stroke}
+.pm-svg .lb{fill:none;stroke:#f0b34a;stroke-width:1.2;vector-effect:non-scaling-stroke}
+.pm-svg .mk{fill:#fff}
+.pm-svg .da{fill:rgba(242,61,74,.45);stroke:none}
+.lg{display:inline-block;width:14px;height:3px;margin:0 4px 0 10px;vertical-align:middle}.lg.p{background:#4f9dff}.lg.b{background:#f0b34a}
+.pm-tbl td small{color:var(--muted)}
+.pm-in{width:68px;padding:1px 4px;text-align:right;font:12px var(--f-ui);border:1px solid #adadad;border-radius:0}
+.pm-note{padding:6px 10px 8px;border-top:1px solid #d0d0d0}
+.pm-cons{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:5px}
+.pm-cons li{display:flex;gap:6px;align-items:flex-start;font-size:12.5px}
+.pm-cons .ic{flex:none;width:14px;text-align:center;font-weight:700}
+.pm-cons .ok .ic{color:var(--up)}.pm-cons .bad .ic{color:var(--down)}
+.pm-cons small{color:var(--muted)}
+.pm-log{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12px}
+.pm-log .event{color:var(--warn)}.pm-log .warn{color:var(--down)}
+.pm-kv{grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px}
+.pm-kv dd{font:600 13px var(--f-ui)}
+.pm-resume{padding:8px 10px;border:1px solid var(--line-2);background:var(--panel-2);display:flex;flex-direction:column;gap:6px;font-size:13px}
+.pm-report{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:1px;background:#a0a0a0;border-bottom:1px solid #a0a0a0}
+.pm-report>*{background:#fff;min-width:0}
+.pm-report{grid-template-areas:"grade res" "grade att" "notes notes"}
+.pm-grade{grid-area:grade}.pm-res{grid-area:res}.pm-att{grid-area:att}.pm-notes{grid-area:notes}
+.pm-big{font:700 72px/1 var(--f-display)}
+.pm-score{font-size:15px;font-weight:600}
+.pm-parts{margin:8px 0 0}
+.pm-parts dt{font-size:12px;color:var(--muted);margin-top:8px}.pm-parts dd{margin:0;font-weight:600}
+.pm-sbar{height:6px;background:#e0e0e0;margin-top:3px}.pm-sbar i{display:block;height:100%;background:var(--accent)}
+@media (max-width:960px){.pm-grid,.pm-report{grid-template-columns:minmax(0,1fr);grid-template-areas:none}.pm-grade,.pm-res,.pm-att,.pm-notes{grid-area:auto}.pm-big{font-size:56px}}
 </style>
 
 <div class="wrap">
@@ -631,6 +675,7 @@ body:not(.in-game) .mt-title{display:none}
     </div>
     <div class="side-stack">
       <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel"></section>
+      <section class="card" id="pm-card" aria-label="Gestionnaire de portefeuille"></section>
       <section class="card resume" id="resume" hidden></section>
       <section class="card resume" id="live-card" hidden></section>
       <form class="card setup" id="setup" autocomplete="off">
@@ -892,6 +937,9 @@ body:not(.in-game) .mt-title{display:none}
 
   <!-- ===== Formation ===== -->
   <main class="learn" id="screen-learn" hidden></main>
+
+  <!-- ===== Gestionnaire de portefeuille ===== -->
+  <main class="pm" id="screen-pm" hidden></main>
 </div>
 <div class="minibar" id="minibar" hidden>
   <div class="mb-info"><span class="mb-px" id="mb-px"></span><span class="mono" id="mb-pnl"></span></div>
@@ -907,4 +955,6 @@ body:not(.in-game) .mt-title{display:none}
 <script src="js/board.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/mt5.js"></script>
+<script src="js/pm.js"></script>
+<script src="js/pmui.js"></script>
 <script src="js/app.js"></script>

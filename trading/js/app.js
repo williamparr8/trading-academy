@@ -119,14 +119,15 @@
     const r = i - App.g.startIdx; return App.g.unit + (r < 0 ? '−' + -r : r);
   };
 
+  App.show = (n) => show(n);   // pour l’écran du gestionnaire de portefeuille (pmui.js)
   function show(name) {
     App.screen = name;
-    for (const s of ['home', 'game', 'end', 'learn', 'board']) $('#screen-' + s).hidden = s !== name;
-    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board';
+    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm']) $('#screen-' + s).hidden = s !== name;
+    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm';
     if (name !== 'board') closeBoard();
     $('#ctx').hidden = name !== 'game';
     $('#minibar').hidden = name !== 'game';
-    document.body.classList.toggle('in-game', name === 'game');
+    document.body.classList.toggle('in-game', name === 'game' || name === 'pm');
     window.scrollTo(0, 0);
   }
 
