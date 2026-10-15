@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const html = fs.readFileSync('progression/index.html', 'utf8');
+const script = html.split('<script>')[1].split('</script>')[0];
+const els = {};
+globalThis.document = { getElementById: (id) => (els[id] ||= { innerHTML: '' }) };
+new Function(script)();
+console.log(els.maj.innerHTML);
+const out = els.contenu.innerHTML;
+console.log([...out.matchAll(/<h2><span class="titre">(.*?)<\/span>(?:<span class="pct">(.*?)<\/span>)?/g)].map((m) => m[1].replace(/<[^>]+>/g, ' | ') + ' -> ' + (m[2] || '')).join('\n'));
+console.log('cartes:', (out.match(/<section/g) || []).length, '| coches faites:', (out.match(/class="fait"/g) || []).length, '| à faire:', (out.match(/class="afaire"/g) || []).length);

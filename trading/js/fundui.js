@@ -179,7 +179,8 @@
       <div class="pm-grid fd-grid">
         <aside class="mt-win pm-left"><header class="mt-wh"><b>Sociétés</b></header><div class="mt-wb">
           <table class="mt-tbl"><thead><tr><th>Symbole</th><th class="r">Prix</th><th class="r">Var.</th><th class="r">P/E</th><th>${pre ? 'Résultats' : ''}</th></tr></thead><tbody>${list}</tbody></table>
-          <p class="mt-note">${pre ? 'Prédis chaque publication : bat, en ligne (±3 %) ou déçoit le consensus.' : 'Var. = depuis la dernière publication.'}</p></div></aside>
+          <p class="mt-note">${pre ? 'Prédis chaque publication : bat, en ligne (±3 %) ou déçoit le consensus.' : 'Var. = depuis la dernière publication.'}</p>
+          <p class="sub-t" style="padding:0 10px">Conseil du mentor</p><p class="hint" style="padding:0 10px 8px">${esc(mentor())}</p></div></aside>
         <section class="pm-center">
           <div class="mt-win"><header class="mt-wh"><b>${esc(c.name)}</b><span class="mt-wsub">${esc(FD.SECTORS[c.sec].name)} · ${esc(c.blurb)}</span></header>
             <div class="fd-tabs"><button type="button" data-fd-tab="fiche" class="${S.tab === 'fiche' ? 'on' : ''}">Fiche financière</button><button type="button" data-fd-tab="comp" class="${S.tab === 'comp' ? 'on' : ''}">Comparer</button><button type="button" data-fd-tab="val" class="${S.tab === 'val' ? 'on' : ''}">Valeur (DCF)</button><button type="button" data-fd-tab="prix" class="${S.tab === 'prix' ? 'on' : ''}">Prix</button><button type="button" data-fd-tab="nouv" class="${S.tab === 'nouv' ? 'on' : ''}">Nouvelles</button></div>
@@ -214,6 +215,29 @@
     render();
   }
 
+  function curveSVG() {
+    const { g, st } = S, n = st.eq.length;
+    if (n < 1) return '<p class="mt-note">Aucun trimestre joué.</p>';
+    const you = [1, ...st.eq.map((v) => v / st.start)];
+    const idx = [1, ...st.eq.map((_, j) => g.cos.reduce((s, c) => s + c.px.post[g.H + j] / c.px.pre[g.H], 0) / g.cos.length)];
+    const W = 640, H = 170, lo = Math.min(...you, ...idx) * 0.97, hi = Math.max(...you, ...idx) * 1.03;
+    const X = (i) => 6 + ((W - 12) * i) / Math.max(1, you.length - 1), Y = (v) => H - 8 - ((H - 16) * (v - lo)) / (hi - lo);
+    const line = (a) => a.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+    return `<div class="pm-chart"><svg class="pm-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Valeur du compte et indice, base 1"><line x1="0" x2="${W}" y1="${Y(1)}" y2="${Y(1)}" class="gl"/><polyline points="${line(idx)}" class="lb"/><polyline points="${line(you)}" class="lp"/></svg></div>`;
+  }
+  function mentor() {
+    const { st } = S, pre = st.phase === 'pre';
+    const tips = [
+      'Commence par l’onglet Comparer : repère les P/E, les flux libres et les créances qui détonnent avant de lire une seule fiche.',
+      'Compare le flux d’exploitation au bénéfice net : un écart qui grandit annonce souvent une déception.',
+      'Les analystes prolongent la tendance : demande-toi ce que la direction dit des marges et des perspectives, pas seulement du trimestre.',
+      'Un P/E bas n’est pas une aubaine si les bénéfices reculent. Vérifie la croissance et la dette avant d’acheter.',
+      'Ne mets pas plus d’environ 35 % du compte sur un seul titre : une surprise négative peut défaire toute la saison.',
+    ];
+    if (!pre) return 'Relis l’explication de chaque publication : la surprise vient-elle des revenus, des marges ou des perspectives ? Le prix a-t-il réagi au chiffre ou à l’avenir ?';
+    if (st.d === 0 && !Object.keys(st.preds).length) return tips[0];
+    return tips[(st.d + 1) % tips.length];
+  }
   function renderReport(root) {
     const { g, st, ev } = S, sc = ev.score;
     const bar = (v) => `<div class="pm-sbar"><i style="width:${Math.round(v)}%"></i></div>`;
@@ -237,6 +261,7 @@
           <dl class="pm-parts"><dt>Performance contre l’indice (50 %)</dt><dd>${Math.round(sc.perf)}${bar(sc.perf)}</dd><dt>Justesse des prédictions (25 %)</dt><dd>${Math.round(sc.acc)}${bar(sc.acc)}</dd><dt>Gestion du risque (25 %)</dt><dd>${Math.round(sc.risk)}${bar(sc.risk)}</dd></dl>
         </div></section>
         <section class="mt-win pm-res"><header class="mt-wh"><b>Sociétés : la vérité</b></header><div class="mt-wb"><table class="mt-tbl"><thead><tr><th>Société</th><th class="r">Actions</th><th class="r">Saison</th><th class="r">Ton rendement</th><th>Comptabilité</th></tr></thead><tbody>${picks}</tbody></table></div></section>
+        <section class="mt-win pm-att"><header class="mt-wh"><b>Compte et indice des huit sociétés</b><span class="mt-wsub"><i class="lg p"></i>Ton compte <i class="lg b"></i>Indice</span></header>${curveSVG()}</section>
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Commentaires du coach</b></header><div class="mt-wb pm-pad">${notes.map(([k, t, x]) => `<div class="fd ${k === 'good' ? 'good' : k === 'warn' ? 'warn' : ''}"><i></i><div><b>${esc(t)}</b><p>${esc(x)}</p></div></div>`).join('')}</div></section>
       </div>`;
   }

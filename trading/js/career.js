@@ -30,6 +30,7 @@
     { id: 'streak7', name: 'Une semaine de suite', desc: 'Joue sept jours consécutifs.' },
     { id: 'pattern1', name: 'Œil de chartiste', desc: 'Termine une Chasse aux figures.' },
     { id: 'patternAce', name: 'Sans faute chartiste', desc: 'Au moins 9 figures sur 10 reconnues.' },
+    { id: 'boss', name: 'Boss de la semaine', desc: 'Obtiens au moins B au mandat de crise de la semaine.' },
     { id: 'all', name: 'Touche-à-tout', desc: 'Termine une séance de chaque mode : partie, mandat, saison et flash.' },
   ];
 
@@ -42,6 +43,9 @@
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const yesterday = () => { const d = new Date(Date.now() - 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   CR.today = today;
+  // lundi de la semaine en cours : le « boss » de la semaine est le même pour tous
+  CR.weekStart = (d = new Date()) => { const day = (d.getDay() + 6) % 7, m = new Date(d.getTime() - day * 86400000); return m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-' + String(m.getDate()).padStart(2, '0'); };
+  CR.weekCode = () => CR.dayCode(CR.weekStart(), 'PM');
   CR.state = () => { const s = store.get(); return s && s.v === 1 ? { ...blank(), ...s } : blank(); };
 
   CR.rankOf = (xp) => {
@@ -112,6 +116,12 @@
     // objectifs du jour : bonus unique par objectif
     const mode = e.kind === 'game' ? 'trade' : e.kind;
     if (e.kind === 'flash' && e.code === CR.dayCode(now, 'FL') && !st.daily.done.flash) { st.daily.done.flash = true; a.xp += 40; a.why.push('défi du jour : Flash'); }
+    if (e.kind === 'pm' && e.code === CR.weekCode() && (!st.weekly || st.weekly.week !== CR.weekStart())) {
+      st.weekly = { week: CR.weekStart(), grade: e.grade };
+      const bonus = ['A', 'B', 'C'].includes(e.grade) ? 80 : 20;
+      a.xp += bonus; a.why.push('boss de la semaine');
+      if (['A', 'B'].includes(e.grade)) a.badges.push('boss');
+    }
     if ((e.kind === 'pm' || e.kind === 'fund') && !st.daily.done.manager) { st.daily.done.manager = true; a.xp += 30; a.why.push('objectif du jour : gestion'); }
     if ((e.kind === 'quiz' || e.kind === 'game') && !st.daily.done.learn) { st.daily.done.learn = true; a.xp += 15; a.why.push('objectif du jour : apprendre ou jouer'); }
     if (a.xp > 0 && st.days.streak >= 2) { const b = Math.min(20, 5 * st.days.streak); a.xp += b; a.why.push(`série de ${st.days.streak} jours`); }
@@ -182,13 +192,15 @@
   function renderCard() {
     const box = $('#career-card');
     if (!box) return;
-    const st = CR.state(), r = CR.rankOf(st.xp), now = today(), done = st.daily.date === now ? st.daily.done : {};
+    const st = CR.state(), r = CR.rankOf(st.xp), now = today(), done = st.daily.date === now ? { ...st.daily.done } : {};
+    if (st.weekly && st.weekly.week === CR.weekStart()) done.weekly = true;
     const live = st.days.last === now || st.days.last === yesterday() ? st.days.streak : 0;
     const pth = path(st), nextI = pth.findIndex((x) => !x.done);
     pathCache = pth;
     const goals = [
+      ['weekly', 'Boss de la semaine : retraitée en pleine crise de 2008', 'wk', 80],
       ['flash', 'Défi du jour : Flash technique', 'fl', 40], ['manager', 'Le mandat ou la saison du jour', 'mgr', 30], ['learn', 'Une partie ou un quiz', null, 15],
-    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : a === 'mgr' && !done[k] ? '<button class="btn sm" type="button" data-career="mgr">Jouer</button>' : ''}</li>`).join('');
+    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : a === 'mgr' && !done[k] ? '<button class="btn sm" type="button" data-career="mgr">Jouer</button>' : a === 'wk' && !done[k] ? '<button class="btn sm" type="button" data-career="wk">Jouer</button>' : ''}</li>`).join('');
     const badges = CR.BADGES.map((b) => `<span class="cr-badge ${st.badges[b.id] ? 'on' : ''}" title="${esc(b.name)} : ${esc(b.desc)}${st.badges[b.id] ? ' (obtenu le ' + esc(st.badges[b.id]) + ')' : ''}">${esc(b.name)}</span>`).join('');
     box.innerHTML = `<h2>Ta carrière</h2>
       <div class="cr-top"><div><b class="cr-rank">${esc(r.name)}</b><small>${nf.format(st.xp)} XP${r.next ? ` · prochain grade : ${esc(r.next)} à ${nf.format(r.to)}` : ' · grade maximal'}</small></div><div class="cr-streak" title="Jours consécutifs"><b>${live}</b><small>jour${live > 1 ? 's' : ''} de suite</small></div></div>
@@ -216,6 +228,15 @@
   document.addEventListener('click', (e) => {
     const pb = e.target.closest('[data-career="path"]');
     if (pb && pathCache[+pb.dataset.i]) { pathCache[+pb.dataset.i].go(); return; }
+    if (e.target.closest('[data-career="wk"]')) {
+      const sel = $('#pm-mand'), sc = $('#pm-scen'), code = $('#pm-code'), b = document.querySelector('[data-pm-home="start"]');
+      if (sel && sc && code && b) {
+        sel.value = 'retraitee'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+        sc.value = 'krach2008'; sc.dispatchEvent(new Event('change', { bubbles: true }));
+        code.value = CR.weekCode(); b.click();
+      }
+      return;
+    }
     if (e.target.closest('[data-career="mgr"]')) {
       const day = Math.floor(Date.now() / 86400000);
       if (day % 2 === 0) { const sel = $('#pm-mand'), code = $('#pm-code'), b = document.querySelector('[data-pm-home="start"]'); if (sel && code && b) { sel.value = ['retraitee', 'jeune', 'fondation', 'regime'][day % 4 === 0 ? 0 : 2]; sel.dispatchEvent(new Event('change', { bubbles: true })); code.value = CR.dayCode(now0(), 'PM'); b.click(); } }

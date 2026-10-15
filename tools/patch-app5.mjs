@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+const f = 'trading/js/app.js';
+let s = fs.readFileSync(f, 'utf8');
+const between = (a, b) => { const i = s.indexOf(a), j = s.indexOf(b, i); if (i < 0 || j < 0) throw new Error('repères introuvables : ' + a.slice(0, 50)); return [i, j]; };
+const swap = (a, b, file) => { const [i, j] = between(a, b); s = s.slice(0, i) + fs.readFileSync(file, 'utf8') + s.slice(j); };
+swap('  async function startNew() {', '  function resumeInfo() {', 'tools/new-startnew.js');
+swap('  function cleanCfg(c) {', '  async function exportSave() {', 'tools/new-load.js');
+const rep = (a, b) => { if (!s.includes(a)) throw new Error('repère introuvable : ' + a.slice(0, 80)); s = s.replace(a, () => b); };
+rep("if (App.g && App.st && !App.st.closed) return { cfg: App.cfg, st: App.st };\n    const sv = store.get(KEY_SAVE);", "if (App.g && App.st && !App.st.closed && !isLive()) return { cfg: App.cfg, st: App.st };\n    const sv = store.get(KEY_SAVE);");
+rep("    if (App.g && App.st && !App.st.closed) { enterGame(); return; }\n    const sv = store.get(KEY_SAVE);", "    if (App.g && App.st && !App.st.closed && !isLive()) { enterGame(); return; }\n    const sv = store.get(KEY_SAVE);");
+rep("    if (st.idx >= g.endIdx) { endGame(); return; }\n    enterGame();", "    if (st.ruined || (cfg.mode !== 'live' && st.idx >= g.endIdx)) { endGame(); return; }\n    enterGame();");
+fs.writeFileSync(f, s);
+console.log('ok');

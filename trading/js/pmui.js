@@ -144,6 +144,18 @@
       <p class="mt-note">Part du risque : un actif léger mais volatil peut dominer le risque. Rouge : corrélation élevée (peu de diversification) ; bleu : négative.</p></div></div>`;
   }
 
+  // conseil du mentor : ce qu'un gestionnaire senior te dirait en regardant l'écran
+  function mentor(chk, cur, saa, L) {
+    const bad = chk.filter((c) => !c.ok);
+    if (bad.length) return `Tu es hors politique : ${bad.map((c) => c.text.toLowerCase()).join(' ; ')}. Corrige avant d’avancer : le mois compte comme un dépassement.`;
+    const dd = S.st.cons.find((c) => c.k === 'maxDD');
+    if (dd && L.dd > dd.v * 0.7) return `Tu approches ta limite de perte (${p1(L.dd)} sur ${p1(dd.v)}). Réduis le risque avant de la franchir : il est plus facile de remonter que de s’excuser.`;
+    let worst = null, wv = 0;
+    for (const id of PM.ALL) { const d = Math.abs(cur.w[id] - (saa[id] || 0)); if (d > wv) { wv = d; worst = id; } }
+    if (wv > 0.05) return `${PM.info(worst).name} a dérivé de ${(wv * 100).toFixed(1).replace('.', ',')} points par rapport à la politique. Rééquilibrer ramène le risque au niveau voulu ; compare le coût des frais à l’écart.`;
+    if (S.st.m === 0) return 'Ton portefeuille de départ suit l’indice de politique. Tu n’as pas à t’en écarter : l’indice est une excellente référence, et chaque écart doit avoir une raison écrite.';
+    return 'Aucune alerte. Si tu veux t’écarter de l’indice, écris pourquoi dans la justification : une décision sans raison est une décision à répéter par hasard.';
+  }
   function render() {
     const root = $('#screen-pm');
     if (!root || !S.g) return;
@@ -183,6 +195,7 @@
             <p class="sub-t">Objectif</p><p>${esc(m.objective.text)}</p>
             <p class="sub-t">Contraintes de l’énoncé de politique</p><ul class="pm-cons" id="pm-cons">${statusFor(chk, after)}</ul>
             <p class="sub-t">Indice de politique</p><p class="hint">${Object.entries(m.bench).map(([id, w]) => `${esc(PM.info(id).name)} ${p1(w)}`).join(' · ')}</p>
+            <p class="sub-t">Conseil du mentor</p><p class="hint">${esc(mentor(chk, cur, saa, L))}</p>
             <p class="fine">Frais : de 0,03 % à 0,15 % du montant échangé selon le FNB. Retraits ou cotisations : ${st.flow ? (st.flow > 0 ? '+' : '−') + money(Math.abs(st.flow)) + ' par mois' : 'aucun'}.</p>
           </div></aside>
         <section class="pm-center">
@@ -252,7 +265,7 @@
     h.unshift({ name: S.g.mand.name, grade: S.ev.score.grade, score: Math.round(S.ev.score.total), active: S.ev.ann - S.ev.bann, code: S.code });
     store.set(HKEY, h.slice(0, 8));
     store.del(KEY);
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'pm', grade: S.ev.score.grade, score: S.ev.score.total, monthsBad: S.ev.monthsBad, active: S.ev.ann - S.ev.bann, code: S.code } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'pm', grade: S.ev.score.grade, score: S.ev.score.total, monthsBad: S.ev.monthsBad, active: S.ev.ann - S.ev.bann, code: S.code, scenario: S.scen } })); } catch (e) { /* rien */ }
     render();
   }
 
