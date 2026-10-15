@@ -263,6 +263,27 @@
     return out;
   };
 
+  // commentaire de la direction : le ton se lit, mais il ne prouve rien. Les sociétés à comptabilité agressive sont
+  // presque toujours promotionnelles et muettes sur la trésorerie ; quelques sociétés saines le sont aussi.
+  FD.commentary = function (c, k) {
+    const r = c.q[k], p = c.q[k - 1] || r, rnd = mulberry(hash('CM|' + c.id + '|' + k)), out = [];
+    const pick = (a) => a[Math.floor(rnd() * a.length)];
+    const promo = c.isAgg && !r.blow ? rnd() < 0.85 : r.surprise > 0.05 && rnd() < 0.35;
+    if (r.blow) out.push(pick(['Nous révisons nos états financiers antérieurs et enregistrons une charge exceptionnelle.', 'Une revue interne nous a conduits à reconnaître nos ventes de façon plus prudente.']));
+    else if (promo) out.push(pick(['Trimestre record : notre élan commercial est exceptionnel et la demande dépasse nos attentes.', 'Nous avons connu une croissance sans précédent et nos clients adoptent massivement notre offre.', 'Les ventes ont atteint un sommet historique, ce qui confirme la force de notre stratégie.']));
+    else if (r.surprise < -0.03) out.push(pick(['Le trimestre a été plus difficile que prévu, dans des conditions de marché exigeantes.', 'Nos résultats sont inférieurs à nos attentes, en raison de coûts plus élevés.']));
+    else out.push(pick(['Le trimestre s’est déroulé conformément à notre plan.', 'Nous avons livré des résultats stables dans un contexte sans grande surprise.']));
+    if (!r.blow) {
+      const conv = r.ni > 0 ? r.cfo / r.ni : null;
+      if (conv != null && conv > 0.9 && !promo) out.push(pick(['Nos flux de trésorerie d’exploitation ont bien soutenu nos investissements et notre dividende.', 'La génération de trésorerie reste solide et finance notre croissance.']));
+      if (r.om - p.om < -0.008) out.push(pick(['Les marges ont subi la pression des coûts des intrants.', 'La hausse des coûts a réduit notre marge d’exploitation.']));
+      if (r.om - p.om > 0.008) out.push('Des gains d’efficacité ont amélioré notre marge d’exploitation.');
+      if (r.guide < -0.015) out.push('Nous adoptons une posture prudente pour les prochains trimestres.');
+      if (r.guide > 0.015) out.push('Nous relevons nos perspectives de croissance pour les prochains trimestres.');
+    }
+    return out;
+  };
+
   /* ---------- évaluation ---------- */
   FD.evaluate = function (g, st) {
     const eq = FD.equity(g, st), tot = eq / st.start - 1;

@@ -686,10 +686,23 @@ tr[data-fd-sel]{cursor:pointer}
 .cr-badges{display:flex;flex-wrap:wrap;gap:4px}
 .cr-badge{padding:1px 8px;border:1px solid var(--line);background:#f4f4f4;color:#9a9a9a;font-size:11.5px}
 .cr-badge.on{background:#fff8e6;border-color:#d9a400;color:#6b4e00;font-weight:600}
+.cr-det summary{cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.cr-next{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--accent);background:var(--accent-a);margin-top:8px;font-size:13px}.cr-next span{color:var(--muted);font-size:11.5px}.cr-next .btn{margin-left:auto}
+.cr-path li.next{font-weight:600}.cr-path li.next .ic{color:var(--accent)}
+.fig-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:640px}
+.fig-card{margin:0;border:1px solid var(--line);padding:6px;background:#fff;color:var(--text)}
+.fig-card .fig{width:100%;max-width:none}.fig-card figcaption{font-size:12px;text-align:center;color:var(--muted)}
+@media (max-width:560px){.fig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fd-dcf .two{margin-bottom:8px}
+.fd-dcf-out{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}
 .xp-toasts{position:fixed;right:16px;top:60px;z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
 .xp-toast{background:#fff;border:1px solid #d9a400;border-left:4px solid #d9a400;padding:8px 12px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:13px;max-width:360px;animation:tin .2s ease-out}
 .xp-toast b{font-size:15px;color:#6b4e00}.xp-toast .up,.xp-toast .bd{margin-top:3px;font-weight:600}
 .xp-toast.out{opacity:0;transition:opacity .4s}
+.fd-quote{margin:0;padding:6px 10px;border-left:3px solid var(--accent);background:#f6f6f6;font-style:italic;font-size:13px}
+.pm-letter p{margin:0 0 8px;max-width:78ch}
+.home-modes{display:flex;flex-wrap:wrap;width:100%}.home-modes button{flex:1 1 auto}
+body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm="pm"] .side-stack>[data-hm]:not([data-hm="pm"]),body[data-hm="fund"] .side-stack>[data-hm]:not([data-hm="fund"]),body[data-hm="tech"] .side-stack>[data-hm]:not([data-hm="tech"]),body[data-hm="learn"] .side-stack>[data-hm]:not([data-hm="learn"]){display:none}
 @media (max-width:960px){.pm-grid,.pm-report{grid-template-columns:minmax(0,1fr);grid-template-areas:none}.pm-grade,.pm-res,.pm-att,.pm-notes{grid-area:auto}.pm-big{font-size:56px}}
 </style>
 
@@ -720,13 +733,14 @@ tr[data-fd-sel]{cursor:pointer}
     </div>
     <div class="side-stack">
       <section class="card" id="career-card" aria-label="Carrière"></section>
-      <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel"></section>
-      <section class="card" id="pm-card" aria-label="Gestionnaire de portefeuille"></section>
-      <section class="card" id="fund-card" aria-label="Saison des résultats"></section>
-      <section class="card" id="flash-card" aria-label="Flash technique"></section>
-      <section class="card resume" id="resume" hidden></section>
-      <section class="card resume" id="live-card" hidden></section>
-      <form class="card setup" id="setup" autocomplete="off">
+      <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel" data-hm="learn"></section>
+      <section class="card" id="pm-card" aria-label="Gestionnaire de portefeuille" data-hm="pm"></section>
+      <section class="card" id="fund-card" aria-label="Saison des résultats" data-hm="fund"></section>
+      <section class="card" id="flash-card" aria-label="Flash technique" data-hm="tech"></section>
+      <section class="card" id="pattern-card" aria-label="Chasse aux figures" data-hm="tech"></section>
+      <section class="card resume" id="resume" data-hm="trade" hidden></section>
+      <section class="card resume" id="live-card" data-hm="trade" hidden></section>
+      <form class="card setup" id="setup" autocomplete="off" data-hm="trade">
         <h2>Nouvelle partie</h2>
         <div class="row"><span class="lab">Mode</span>
           <div class="seg" id="s-mode" role="group" aria-label="Mode">
@@ -766,10 +780,10 @@ tr[data-fd-sel]{cursor:pointer}
         <button class="btn primary big" id="s-go" type="submit" disabled>Chargement des cotes…</button>
         <p class="fine" id="s-fine"></p>
       </form>
-      <section class="card" id="board-card" aria-label="Classement"></section>
-      <section class="card" id="learn-card" aria-label="Formation"></section>
-      <section class="card profile" id="profile" aria-label="Ton niveau"></section>
-      <div class="card imp">
+      <section class="card" id="board-card" aria-label="Classement" data-hm="trade"></section>
+      <section class="card" id="learn-card" aria-label="Formation" data-hm="learn"></section>
+      <section class="card profile" id="profile" aria-label="Ton niveau" data-hm="trade"></section>
+      <div class="card imp" data-hm="trade">
         <span class="dim">Reprendre une partie exportée</span>
         <label class="btn sm" for="file-import" style="cursor:pointer">Importer un fichier .json</label>
         <input type="file" id="file-import" accept=".json,application/json" hidden>
@@ -990,6 +1004,7 @@ tr[data-fd-sel]{cursor:pointer}
   <main class="pm" id="screen-pm" hidden></main>
   <main class="pm" id="screen-fund" hidden></main>
   <main class="pm" id="screen-flash" hidden></main>
+  <main class="pm" id="screen-pattern" hidden></main>
 </div>
 <div class="minibar" id="minibar" hidden>
   <div class="mb-info"><span class="mb-px" id="mb-px"></span><span class="mono" id="mb-pnl"></span></div>
@@ -1011,5 +1026,6 @@ tr[data-fd-sel]{cursor:pointer}
 <script src="js/fund.js"></script>
 <script src="js/fundui.js"></script>
 <script src="js/flash.js"></script>
+<script src="js/pattern.js"></script>
 <script src="js/career.js"></script>
 <script src="js/app.js"></script>

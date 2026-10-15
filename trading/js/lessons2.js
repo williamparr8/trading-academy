@@ -120,5 +120,34 @@
         { q: 'Un actif de 10 % du poids peut représenter 25 % du risque si…', o: ['il est très volatil ou très corrélé au reste', 'il paie un dividende', 'il est coté au Canada'], a: 0, e: 'La contribution au risque dépend du poids, de la volatilité et des corrélations.' },
       ],
     },
+    {
+      id: 'patterns', title: 'Les figures chartistes', mins: 4,
+      intro: 'Certaines formes reviennent parce qu’elles résument un rapport de force. Aucune ne garantit quoi que ce soit : elles donnent un scénario, un point d’invalidation et un objectif mesuré.',
+      body: [
+        { fig: 'patterns' },
+        { ul: ['Double sommet : deux hauts au même niveau puis cassure de la ligne de cou : signal baissier. Le double creux est son miroir.', 'Épaule-tête-épaule : trois hauts, celui du milieu plus élevé, puis cassure de la ligne de cou.', 'Triangle ascendant : résistance plate et creux de plus en plus hauts ; la cassure se fait souvent vers le haut.', 'Drapeau : forte impulsion puis courte consolidation inclinée ; la tendance reprend souvent.'] },
+        { h: 'Comment s’en servir' },
+        { ul: ['L’entrée est la cassure confirmée (clôture au-delà de la ligne, idéalement avec volume).', 'Le stop se place de l’autre côté de la figure : si le prix y retourne, la figure est invalidée.', 'L’objectif mesuré reprend la hauteur de la figure à partir de la cassure.'] },
+        { tip: 'Une figure n’est complète qu’à la cassure. Avant, c’est une hypothèse : beaucoup de « doubles sommets » ne sont que des pauses.' },
+      ],
+      quiz: [
+        { q: 'À quel moment un double sommet est-il confirmé ?', o: ['Dès que le deuxième sommet apparaît', 'Quand le prix casse la ligne de cou vers le bas', 'Quand le volume baisse'], a: 1, e: 'Sans cassure de la ligne de cou, la figure n’est qu’une hypothèse.' },
+        { q: 'Où place-t-on le stop d’un trade pris sur une cassure de triangle ascendant ?', o: ['Loin, pour ne jamais être sorti', 'De l’autre côté de la figure, là où elle serait invalidée', 'Au prix d’entrée exactement'], a: 1, e: 'Le stop correspond à l’invalidation de la figure.' },
+        { q: 'L’objectif mesuré d’une figure est en général…', o: ['la hauteur de la figure reportée depuis la cassure', 'le double du prix d’entrée', 'le plus haut de l’année'], a: 0, e: 'On reporte la hauteur de la figure depuis le point de cassure.' },
+        { q: 'Un drapeau haussier annonce…', o: ['un renversement de tendance', 'une pause avant une probable reprise de la hausse', 'une faillite'], a: 1, e: 'Après une forte impulsion, une courte consolidation précède souvent la reprise.' },
+      ],
+    },
   );
+  // illustrations : tracés schématiques (pas des données réelles)
+  const fig = (title, pts, extra = '') => '<figure class="fig-card"><svg viewBox="0 0 200 110" class="fig" role="img" aria-label="' + title + '"><polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' + extra + '</svg><figcaption>' + title + '</figcaption></figure>';
+  const dash = (x1, y1, x2, y2, c = '#d81e27') => '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + c + '" stroke-dasharray="4 3"/>';
+  TA.FIGURES = TA.FIGURES || {};
+  TA.FIGURES.patterns = () => '<div class="fig-grid">' + [
+    fig('Double sommet', '10,90 40,40 70,70 100,40 130,75 160,95 190,105', dash(0, 72, 200, 72)),
+    fig('Double creux', '10,20 40,70 70,45 100,70 130,40 160,18 190,8', dash(0, 45, 200, 45, '#0b3fd6')),
+    fig('Épaule-tête-épaule', '10,90 30,55 50,75 80,25 110,75 130,55 150,80 175,100', dash(0, 76, 200, 76)),
+    fig('Triangle ascendant', '10,95 40,40 60,75 90,40 110,62 140,40 160,52 190,15', dash(0, 40, 160, 40, '#0b3fd6')),
+    fig('Drapeau haussier', '10,100 50,30 70,38 90,32 110,46 135,40 190,5'),
+    fig('Cassure de résistance', '10,70 40,45 60,60 90,42 120,58 150,42 170,25 190,10', dash(0, 42, 200, 42, '#0b3fd6')),
+  ].join('') + '</div>';
 })();

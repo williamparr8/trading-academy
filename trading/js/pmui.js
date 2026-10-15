@@ -257,6 +257,23 @@
   }
 
   /* ---------- rapport d'évaluation ---------- */
+  // lettre au client : la communication fait partie du métier, et elle doit coller aux chiffres
+  function letter(g, st, ev) {
+    const m = g.mand, n = st.mon.length, yrs = (n / 12).toFixed(1).replace('.', ',');
+    const o = [];
+    o.push(`Objet : rapport de gestion — ${m.client}.`);
+    o.push(`Sur ${n} mois (${yrs} an${n > 12 ? 's' : ''}), votre portefeuille a rapporté ${sp1(ev.ann)} par an, contre ${sp1(ev.bann)} pour l’indice de politique. ${ev.objMet ? 'L’objectif fixé dans votre énoncé de politique est atteint.' : 'L’objectif fixé dans votre énoncé de politique n’est pas atteint, et nous vous le devons.'}`);
+    const dd = st.cons.find((c) => c.k === 'maxDD');
+    o.push(`Du côté du risque, la perte maximale depuis un sommet a été de ${p1(ev.dd)}${dd ? ` pour une limite de ${p1(dd.v)}${ev.dd > dd.v ? ', que nous avons dépassée' : ', que nous avons respectée'}` : ''}, avec une volatilité annualisée de ${p1(ev.vol)} (indice : ${p1(ev.bvol)}).`);
+    o.push(ev.monthsBad ? `Nous avons été hors politique ${ev.monthsBad} mois sur ${ev.monthsChk}. Nous en assumons la responsabilité et avons identifié les causes dans le détail ci-dessous.` : 'Le portefeuille est resté conforme à votre énoncé de politique pendant toute la période.');
+    const adv = [];
+    if (ev.turnover > 1.5) adv.push('réduire la rotation, dont le coût pèse sur votre rendement');
+    if (ev.dnCap != null && ev.dnCap > 1.05) adv.push('mieux protéger le capital dans les mois négatifs');
+    if (ev.dd > (dd ? dd.v : 1)) adv.push('abaisser le risque pour rester sous votre limite de perte');
+    if (ev.te > 0.06) adv.push('resserrer l’écart avec l’indice');
+    o.push(adv.length ? `Pour la suite, nous proposons de ${adv.join(', de ')}.` : 'Pour la suite, nous proposons de maintenir la politique actuelle et de la réviser avec vous si votre situation change.');
+    return o;
+  }
   function renderReport(root) {
     const { g, st, ev } = S, m = g.mand, sc = ev.score;
     const d0 = g.t[g.start], d1 = g.t[st.idx];
@@ -296,6 +313,7 @@
           <tr><td>Frais de transaction</td><td class="r ${cls(ev.costDrag)}">${sp1(ev.costDrag / Math.max(1, st.mon.length) * 12)}</td></tr>
           <tr class="sumrow"><td>Écart total à l’indice</td><td class="r ${cls(ev.ann - ev.bann)}">${sp1(ev.ann - ev.bann)}</td></tr></tbody></table></div>
           <p class="mt-note">Poids actif × rendement relatif de chaque actif, mois par mois. La somme approche l’écart total : le reste vient de la composition des rendements et de la dérive.</p></section>
+        <section class="mt-win pm-notes"><header class="mt-wh"><b>Lettre au client</b></header><div class="mt-wb pm-pad pm-letter">${letter(g, st, ev).map((t) => `<p>${esc(t)}</p>`).join('')}</div></section>
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Commentaires du coach</b></header><div class="mt-wb pm-pad">
           ${ev.notes.map((n) => `<div class="${kinds[n.kind] || 'fd'}"><i></i><div><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div></div>`).join('')}
           ${st.trades.length ? `<p class="sub-t">Journal des décisions</p><ul class="pm-log">${st.trades.map((t) => `<li><small>Mois ${t.m}</small> ${money(t.traded)} échangés, frais ${money(t.cost)}${t.note ? ` — « ${esc(t.note)} »` : ''}</li>`).join('')}</ul>` : ''}

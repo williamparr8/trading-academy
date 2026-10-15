@@ -91,6 +91,48 @@
     return `<div class="scroll-x"><table class="mt-tbl pm-tbl fd-st"><thead><tr><th>${esc(c.name)}</th>${th}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
   }
 
+  // comparaison des huit sociétés sur les mêmes indicateurs : le point de départ d'un tri de titres
+  function compareHTML(rt, prices) {
+    const g = S.g, k1 = kVis();
+    const rows = g.cos.map((x, i) => {
+      const r = rt[i], q = x.q[k1], q0 = x.q[Math.max(0, k1 - 4)];
+      return `<tr data-fd-sel="${x.id}" class="${x.id === S.sel ? 'sel' : ''}"><td><b>${x.id}</b> <small>${esc(FD.SECTORS[x.sec].name)}</small></td><td class="r">${px(prices[x.id])}</td><td class="r">${r.pe == null ? '—' : n1(r.pe)}</td><td class="r">${n1(r.pb)}</td><td class="r">${p1(r.divY)}</td><td class="r ${r.fcfY < 0 ? 'neg' : ''}">${p1(r.fcfY)}</td><td class="r">${p1(r.roe)}</td><td class="r">${p1(r.margin)}</td><td class="r">${sp1(r.growth)}</td><td class="r ${r.ndEbitda > 3.5 ? 'neg' : ''}">${r.ndEbitda == null ? '—' : n1(r.ndEbitda)}</td><td class="r ${r.cfoNi != null && r.cfoNi < 0.7 ? 'neg' : ''}">${r.cfoNi == null ? '—' : p1(r.cfoNi)}</td><td class="r ${q.dso > q0.dso * 1.12 ? 'neg' : ''}">${Math.round(q.dso)} j</td></tr>`;
+    }).join('');
+    return `<div class="scroll-x"><table class="mt-tbl pm-tbl"><thead><tr><th>Société</th><th class="r">Prix</th><th class="r">P/E</th><th class="r">P/B</th><th class="r">Dividende</th><th class="r">Flux libre</th><th class="r">ROE</th><th class="r">Marge</th><th class="r">Croissance</th><th class="r">Dette/BAIIA</th><th class="r">Flux/Bénéfice</th><th class="r">Créances</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="mt-note">Cherche les écarts : un P/E bas avec un flux libre négatif, des créances qui montent ou un ratio flux/bénéfice faible sont des signaux d’alerte, pas des aubaines. Clique une ligne pour ouvrir la fiche.</p>`;
+  }
+  // valeur intrinsèque par flux de trésorerie actualisés : l'outil central de l'analyste
+  function dcfCalc(f0, g, r, tg) {
+    if (!(r > tg)) return null;
+    let v = 0, f = f0;
+    for (let t = 1; t <= 5; t++) { f *= 1 + g; v += f / Math.pow(1 + r, t); }
+    return v + (f * (1 + tg)) / (r - tg) / Math.pow(1 + r, 5);
+  }
+  function dcfHTML(c, r, mc, price) {
+    const t = FD.ttm(c, kVis()), f0 = t.fcf / c.sh, gDef = Math.max(0, Math.min(0.25, Math.round((c.q[kVis()].gRep) * 100) / 100)), rDef = Math.round((0.07 + (mc.rate - 0.03)) * 1000) / 1000;
+    S.dcf = S.dcf && S.dcf.id === c.id && S.dcf.k === kVis() ? S.dcf : { id: c.id, k: kVis(), g: gDef, r: rDef, tg: 0.025 };
+    const d = S.dcf, v = dcfCalc(f0, d.g, d.r, d.tg), mos = v != null ? v / price - 1 : null;
+    return `<div class="fd-dcf">
+      <p class="hint">Valeur d’une action = somme des flux libres des 5 prochaines années, plus une valeur terminale, actualisés au taux d’exigence. Les trois hypothèses ci-dessous font toute la différence : change-les et regarde.</p>
+      <div class="two">
+        <label class="field"><span>Flux libre par action (12 derniers mois)</span><input value="${px(f0)} $" disabled></label>
+        <label class="field"><span>Prix actuel</span><input value="${px(price)} $" disabled></label>
+        <label class="field"><span>Croissance annuelle sur 5 ans (%)</span><input data-dcf="g" inputmode="decimal" value="${(d.g * 100).toFixed(1).replace('.', ',')}"></label>
+        <label class="field"><span>Taux d’actualisation (%)</span><input data-dcf="r" inputmode="decimal" value="${(d.r * 100).toFixed(1).replace('.', ',')}"></label>
+        <label class="field"><span>Croissance à perpétuité (%)</span><input data-dcf="tg" inputmode="decimal" value="${(d.tg * 100).toFixed(1).replace('.', ',')}"></label>
+      </div>
+      <div class="fd-dcf-out" id="fd-dcf-out">${dcfOut(f0, d, price)}</div>
+      <p class="mt-note">Le taux d’actualisation monte avec les taux directeurs et le risque de l’entreprise. Un petit changement de taux modifie beaucoup la valeur : exige une marge de sécurité.</p>
+    </div>`;
+  }
+  function dcfOut(f0, d, price) {
+    if (!(f0 > 0)) return '<p class="neg">Flux libre négatif : la méthode ne s’applique pas telle quelle. Utilise les revenus et la trajectoire de marge.</p>';
+    const v = dcfCalc(f0, d.g, d.r, d.tg);
+    if (v == null) return '<p class="neg">Le taux d’actualisation doit dépasser la croissance à perpétuité.</p>';
+    const mos = v / price - 1;
+    return `<div class="fd-card"><span>Valeur estimée</span><b>${px(v)} $</b><small>par action</small></div><div class="fd-card"><span>Écart avec le prix</span><b class="${mos > 0.15 ? 'pos' : mos < -0.15 ? 'neg' : ''}">${sp1(mos)}</b><small>${mos > 0.15 ? 'marge de sécurité' : mos < -0.15 ? 'cher selon ces hypothèses' : 'proche du prix'}</small></div>`;
+  }
+
   function render() {
     const root = $('#screen-fund');
     if (!root || !S.g) return;
@@ -140,10 +182,10 @@
           <p class="mt-note">${pre ? 'Prédis chaque publication : bat, en ligne (±3 %) ou déçoit le consensus.' : 'Var. = depuis la dernière publication.'}</p></div></aside>
         <section class="pm-center">
           <div class="mt-win"><header class="mt-wh"><b>${esc(c.name)}</b><span class="mt-wsub">${esc(FD.SECTORS[c.sec].name)} · ${esc(c.blurb)}</span></header>
-            <div class="fd-tabs"><button type="button" data-fd-tab="fiche" class="${S.tab === 'fiche' ? 'on' : ''}">Fiche financière</button><button type="button" data-fd-tab="prix" class="${S.tab === 'prix' ? 'on' : ''}">Prix</button><button type="button" data-fd-tab="nouv" class="${S.tab === 'nouv' ? 'on' : ''}">Nouvelles</button></div>
+            <div class="fd-tabs"><button type="button" data-fd-tab="fiche" class="${S.tab === 'fiche' ? 'on' : ''}">Fiche financière</button><button type="button" data-fd-tab="comp" class="${S.tab === 'comp' ? 'on' : ''}">Comparer</button><button type="button" data-fd-tab="val" class="${S.tab === 'val' ? 'on' : ''}">Valeur (DCF)</button><button type="button" data-fd-tab="prix" class="${S.tab === 'prix' ? 'on' : ''}">Prix</button><button type="button" data-fd-tab="nouv" class="${S.tab === 'nouv' ? 'on' : ''}">Nouvelles</button></div>
             <div class="mt-wb fd-body">
-              ${S.tab === 'fiche' ? `<div class="fd-cards">${cards}</div>${nextC != null ? `<p class="mt-note">Consensus du prochain BPA : <b>${px(nextC)} $</b> (dernier : ${px(c.q[k1].eps)} $). Les analystes prolongent la tendance : à toi de juger si elle tiendra.</p>` : ''}${statement(c)}`
-                : S.tab === 'prix' ? `<div class="pm-chart">${spark(c)}</div>`
+              ${S.tab === 'fiche' ? `<div class="fd-cards">${cards}</div>${nextC != null ? `<p class="mt-note">Consensus du prochain BPA : <b>${px(nextC)} $</b> (dernier : ${px(c.q[k1].eps)} $). Les analystes prolongent la tendance : à toi de juger si elle tiendra.</p>` : ''}${statement(c)}<p class="sub-t" style="margin-top:10px">Commentaire de la direction</p><blockquote class="fd-quote">${FD.commentary(c, k1).map((t) => esc(t)).join(' ')}</blockquote><p class="fine">Le ton se lit, il ne prouve rien : vérifie-le contre les flux de trésorerie.</p>`
+                : S.tab === 'comp' ? compareHTML(rt, prices) : S.tab === 'val' ? dcfHTML(c, r, mc, prices[c.id]) : S.tab === 'prix' ? `<div class="pm-chart">${spark(c)}</div>`
                 : `<ul class="pm-log fd-news">${news}</ul>`}
             </div></div>
           ${res ? `<div class="mt-win"><header class="mt-wh"><b>Résultats du trimestre</b></header><div class="mt-wb"><table class="mt-tbl"><thead><tr><th>Société</th><th class="r">BPA</th><th class="r">Consensus</th><th class="r">Surprise</th><th class="r">Perspectives</th><th class="r">Prix</th><th class="r">Actions</th><th class="r">Effet</th><th>Prédiction</th></tr></thead><tbody>${resRows}</tbody></table><div class="pm-pad">${expl}</div></div></div>` : ''}
@@ -187,7 +229,7 @@
     else notes.push(['info', 'Aucune prédiction', 'Prédire chaque publication t’oblige à estimer ce que le consensus ignore : c’est l’exercice central de l’analyse fondamentale.']);
     notes.push([ev.alpha > 0.01 ? 'good' : ev.alpha < -0.01 ? 'warn' : 'info', 'Contre l’indice', `Rendement ${sp1(ev.tot)} contre ${sp1(ev.idxRet)} pour les huit sociétés à poids égaux (écart ${sp1(ev.alpha)}). Frais payés : ${money(ev.fees)}.`]);
     root.innerHTML = `
-      <div class="mt-bar pm-bar"><b class="pm-title">Bilan de la saison · code ${esc(S.code)}</b><span class="sp"></span><button class="btn" type="button" data-fd="replay">Rejouer ces sociétés</button><button class="btn primary" type="button" data-fd="home">Nouvelle saison</button></div>
+      <div class="mt-bar pm-bar"><b class="pm-title">Bilan de la saison · code ${esc(S.code)}</b><span class="sp"></span><button class="btn" type="button" data-fd="share">Copier mon résultat</button><button class="btn" type="button" data-fd="replay">Rejouer ces sociétés</button><button class="btn primary" type="button" data-fd="home">Nouvelle saison</button></div>
       <div class="pm-report">
         <section class="mt-win pm-grade"><header class="mt-wh"><b>Évaluation</b></header><div class="mt-wb pm-pad">
           <div class="pm-big ${sc.grade <= 'B' ? 'pos' : sc.grade >= 'D' ? 'neg' : ''}">${sc.grade}</div><p class="pm-score">${Math.round(sc.total)} sur 100</p>
@@ -245,7 +287,22 @@
       const p = e.target.dataset && e.target.dataset.fdPred;
       if (p && S.st) { FD.predict(S.st, p, e.target.value); persist(); }
     });
-    document.addEventListener('input', (e) => { if (e.target.id === 'fd-qty') S.qty = e.target.value; });
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'fd-qty') S.qty = e.target.value;
+      const k = e.target.dataset && e.target.dataset.dcf;
+      if (k && S.dcf && S.g) {
+        const v = parseFloat(String(e.target.value).replace(',', '.'));
+        if (Number.isFinite(v)) S.dcf[k] = v / 100;
+        const c = cur(), t = FD.ttm(c, kVis()), out = $('#fd-dcf-out');
+        if (out) out.innerHTML = dcfOut(t.fcf / c.sh, S.dcf, FD.price(S.g, S.st, c));
+      }
+    });
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-fd="share"]');
+      if (!b || !S.ev) return;
+      const sc = S.ev.score, txt = `Saison des résultats ${S.code} : note ${sc.grade} (${Math.round(sc.total)}/100), ${sp1(S.ev.tot)} contre ${sp1(S.ev.idxRet)} pour l’indice. Rejoue les mêmes sociétés avec le code ${S.code} sur Trading Academy.`;
+      try { navigator.clipboard.writeText(txt); b.textContent = 'Copié ✓'; } catch (err) { b.textContent = txt; }
+    });
   }
   bind(); renderCard();
   FD.ui = { render, renderCard };

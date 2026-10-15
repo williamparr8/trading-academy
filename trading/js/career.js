@@ -28,6 +28,8 @@
     { id: 'quizAll', name: 'Diplômé', desc: 'Réussis tous les quiz de leçons.' },
     { id: 'streak3', name: 'Trois jours de suite', desc: 'Joue trois jours consécutifs.' },
     { id: 'streak7', name: 'Une semaine de suite', desc: 'Joue sept jours consécutifs.' },
+    { id: 'pattern1', name: 'Œil de chartiste', desc: 'Termine une Chasse aux figures.' },
+    { id: 'patternAce', name: 'Sans faute chartiste', desc: 'Au moins 9 figures sur 10 reconnues.' },
     { id: 'all', name: 'Touche-à-tout', desc: 'Termine une séance de chaque mode : partie, mandat, saison et flash.' },
   ];
 
@@ -86,6 +88,9 @@
       add(20, 'séance terminée'); add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
       out.badges.push('flash1'); if (e.total >= 5) out.badges.push('flashPos');
+    } else if (e.kind === 'pattern') {
+      add(15 + e.right * 4, `${e.right} figures sur ${e.total}`);
+      out.badges.push('pattern1'); if (e.right >= 9) out.badges.push('patternAce');
     } else if (e.kind === 'quiz') {
       const first = !st.quizPass[e.id];
       if (e.score / e.total >= 0.75) { add(first ? 15 : 3, first ? 'quiz réussi' : 'quiz refait'); }
@@ -112,7 +117,7 @@
     if (a.xp > 0 && st.days.streak >= 2) { const b = Math.min(20, 5 * st.days.streak); a.xp += b; a.why.push(`série de ${st.days.streak} jours`); }
     st.xp += a.xp;
     const key = e.kind === 'game' ? 'game' : e.kind;
-    if (st.stats[key] != null) st.stats[key]++;
+    st.stats[key] = (st.stats[key] || 0) + 1;
     if (e.kind === 'quiz' && e.score / e.total >= 0.75) st.quizPass[e.id] = true;
     // badges
     const got = [];
@@ -136,6 +141,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nf = new Intl.NumberFormat('fr-CA');
+  const now0 = () => today();
 
   function toast(res) {
     let box = $('#xp-toasts');
@@ -147,25 +153,75 @@
     box.appendChild(el);
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 400); }, res.promoted || bn.length ? 7000 : 4500);
   }
+  // parcours recommandé : la prochaine étape non faite met l'apprenant sur la bonne voie
+  function path(st) {
+    let prefs = null;
+    try { prefs = JSON.parse(localStorage.getItem('ta:prefs')); } catch (e) { /* rien */ }
+    const tuto = (prefs && prefs.tuto) || {};
+    const q = (id) => !!st.quizPass[id];
+    return [
+      { t: 'Tutoriel : ton premier trade', done: !!tuto.basics, go: () => { const b = document.querySelector('[data-tuto="start"][data-mod="basics"]'); if (b) b.click(); } },
+      { t: 'Leçon : lire les chandeliers', done: q('candles'), go: () => lesson('candles') },
+      { t: 'Ta première partie', done: st.stats.game >= 1, go: () => scrollTo('setup') },
+      { t: 'Une séance de Flash technique', done: st.stats.flash >= 1, go: () => scrollTo('flash-card') },
+      { t: 'Leçon : lire les états financiers', done: q('statements'), go: () => lesson('statements') },
+      { t: 'Une saison des résultats', done: st.stats.fund >= 1, go: () => scrollTo('fund-card') },
+      { t: 'Leçon : l’énoncé de politique', done: q('ips'), go: () => lesson('ips') },
+      { t: 'Un mandat de gestion', done: st.stats.pm >= 1, go: () => scrollTo('pm-card') },
+      { t: 'Leçon : mesurer la performance', done: q('metrics'), go: () => lesson('metrics') },
+      { t: 'Une partie disciplinée', done: !!st.badges.discipline, go: () => scrollTo('setup') },
+    ];
+  }
+  const scrollTo = (id) => {
+    const hm = { setup: 'trade', 'flash-card': 'tech', 'fund-card': 'fund', 'pm-card': 'pm' }[id];
+    if (hm) { const b = document.querySelector('[data-hmode="' + hm + '"]'); if (b) b.click(); }
+    const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const lesson = (id) => { const hb = document.querySelector('[data-hmode="learn"]'); if (hb) hb.click(); const b = document.querySelector('[data-lesson="' + id + '"]'); if (b) b.click(); else { const o = document.getElementById('learn-open'); if (o) o.click(); } };
+  let pathCache = [];
   function renderCard() {
     const box = $('#career-card');
     if (!box) return;
     const st = CR.state(), r = CR.rankOf(st.xp), now = today(), done = st.daily.date === now ? st.daily.done : {};
     const live = st.days.last === now || st.days.last === yesterday() ? st.days.streak : 0;
+    const pth = path(st), nextI = pth.findIndex((x) => !x.done);
+    pathCache = pth;
     const goals = [
-      ['flash', 'Défi du jour : Flash technique', 'fl', 40], ['manager', 'Un mandat ou une saison des résultats', null, 30], ['learn', 'Une partie ou un quiz', null, 15],
-    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : ''}</li>`).join('');
+      ['flash', 'Défi du jour : Flash technique', 'fl', 40], ['manager', 'Le mandat ou la saison du jour', 'mgr', 30], ['learn', 'Une partie ou un quiz', null, 15],
+    ].map(([k, t, a, xp]) => `<li class="${done[k] ? 'ok' : ''}"><span class="ic">${done[k] ? '✓' : '○'}</span><span>${esc(t)} <small>+${xp} XP</small></span>${a === 'fl' && !done[k] ? '<button class="btn sm" type="button" data-career="daily">Jouer</button>' : a === 'mgr' && !done[k] ? '<button class="btn sm" type="button" data-career="mgr">Jouer</button>' : ''}</li>`).join('');
     const badges = CR.BADGES.map((b) => `<span class="cr-badge ${st.badges[b.id] ? 'on' : ''}" title="${esc(b.name)} : ${esc(b.desc)}${st.badges[b.id] ? ' (obtenu le ' + esc(st.badges[b.id]) + ')' : ''}">${esc(b.name)}</span>`).join('');
     box.innerHTML = `<h2>Ta carrière</h2>
       <div class="cr-top"><div><b class="cr-rank">${esc(r.name)}</b><small>${nf.format(st.xp)} XP${r.next ? ` · prochain grade : ${esc(r.next)} à ${nf.format(r.to)}` : ' · grade maximal'}</small></div><div class="cr-streak" title="Jours consécutifs"><b>${live}</b><small>jour${live > 1 ? 's' : ''} de suite</small></div></div>
       <div class="prog"><i style="width:${Math.round(r.pct * 100)}%"></i></div>
+      ${nextI >= 0 ? `<div class="cr-next"><span>Prochaine étape</span><b>${esc(pth[nextI].t)}</b><button class="btn sm primary" type="button" data-career="path" data-i="${nextI}">Y aller</button></div>` : ""}<details class="cr-det"><summary>Parcours recommandé · ${pth.filter((x) => x.done).length} sur ${pth.length}</summary><ul class="cr-goals cr-path">${pth.map((x, i) => `<li class="${x.done ? 'ok' : i === nextI ? 'next' : ''}"><span class="ic">${x.done ? '✓' : i === nextI ? '▶' : '○'}</span><span>${esc(x.t)}</span>${i === nextI ? `<button class="btn sm primary" type="button" data-career="path" data-i="${i}">Y aller</button>` : ''}</li>`).join('')}</ul></details>
       <p class="sub">Objectifs du jour</p><ul class="cr-goals">${goals}</ul>
-      <p class="sub">Badges · ${Object.keys(st.badges).length} sur ${CR.BADGES.length}</p><div class="cr-badges">${badges}</div>`;
+      <details class="cr-det"><summary>Badges · ${Object.keys(st.badges).length} sur ${CR.BADGES.length}</summary><div class="cr-badges">${badges}</div></details>`;
   }
+  // sélecteur de mode : l'accueil ne montre que les cartes du mode choisi
+  (function homeModes() {
+    const card = $('#career-card');
+    if (!card || $('#home-modes')) return;
+    const modes = [['trade', 'Trading'], ['tech', 'Technique'], ['fund', 'Analyste'], ['pm', 'Gestionnaire'], ['learn', 'Formation']];
+    let cur = 'trade';
+    try { const v = localStorage.getItem('ta:homemode'); if (modes.some((m) => m[0] === v)) cur = v; } catch (e) { /* rien */ }
+    const seg = document.createElement('div');
+    seg.className = 'seg home-modes'; seg.id = 'home-modes'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Mode de jeu');
+    const paint = () => { document.body.dataset.hm = cur; seg.innerHTML = modes.map(([id, n]) => `<button type="button" data-hmode="${id}" class="${id === cur ? 'on' : ''}">${n}</button>`).join(''); };
+    seg.addEventListener('click', (e) => { const b = e.target.closest('[data-hmode]'); if (!b) return; cur = b.dataset.hmode; try { localStorage.setItem('ta:homemode', cur); } catch (err) { /* rien */ } paint(); });
+    card.after(seg); paint();
+  })();
   window.addEventListener('ta:xp', (ev) => {
     try { const res = CR.apply(ev.detail || {}); toast(res); renderCard(); } catch (e) { /* la progression ne doit jamais casser un module */ }
   });
   document.addEventListener('click', (e) => {
+    const pb = e.target.closest('[data-career="path"]');
+    if (pb && pathCache[+pb.dataset.i]) { pathCache[+pb.dataset.i].go(); return; }
+    if (e.target.closest('[data-career="mgr"]')) {
+      const day = Math.floor(Date.now() / 86400000);
+      if (day % 2 === 0) { const sel = $('#pm-mand'), code = $('#pm-code'), b = document.querySelector('[data-pm-home="start"]'); if (sel && code && b) { sel.value = ['retraitee', 'jeune', 'fondation', 'regime'][day % 4 === 0 ? 0 : 2]; sel.dispatchEvent(new Event('change', { bubbles: true })); code.value = CR.dayCode(now0(), 'PM'); b.click(); } }
+      else { const code = $('#fd-code'), b = document.querySelector('[data-fd-home="start"]'); if (code && b) { code.value = CR.dayCode(now0(), 'FD'); b.click(); } }
+      return;
+    }
     if (!e.target.closest('[data-career="daily"]')) return;
     const code = CR.dayCode(), inp = $('#fl-code'), b = document.querySelector('[data-fl-home="start"]');
     if (inp && b) { inp.value = code; b.click(); }
