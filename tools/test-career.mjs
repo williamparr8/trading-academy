@@ -28,4 +28,11 @@ ok('grades, progression vers le grade suivant, code du jour reproductible');
   assert(q2.xp < q.xp, 'un quiz refait rapporte moins');
   ok('XP et badges des cinq modules, objectifs du jour, quiz refait moins payant');
 }
+{
+  const r = CR.apply({ kind: 'exam', pct: 0.95, pass: true, n: 20, review: false, code: 'EX-TEST' });
+  assert(r.badges.includes('exam') && r.badges.includes('exam90'));
+  const r2 = CR.apply({ kind: 'exam', pct: 0.5, pass: false, n: 10, review: true, code: 'EX-TEST2' });
+  assert(!r2.badges.includes('exam') && r2.xp > 0);
+  ok('examen : XP et badges, la révision rapporte moins');
+}
 console.log(`  ${n} groupes de la carrière réussis`);

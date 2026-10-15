@@ -214,6 +214,7 @@
   };
 
   /* ---------- le temps passe ---------- */
+  FD.predictMacro = (st, p) => { if (st.phase === 'pre' && ['up', 'flat', 'down'].includes(p)) st.mpred = p; };
   FD.predict = (st, id, p) => { if (st.phase === 'pre' && ['beat', 'inline', 'miss'].includes(p)) st.preds[id] = p; };
   FD.reveal = function (g, st) {
     if (st.phase !== 'pre' || st.ended) return { ok: false };
@@ -227,15 +228,17 @@
       if (held > 0 && dps > 0) st.cash += held * dps;
       res.push({ id: c.id, dps, eps: r.eps, cons: r.cons, surprise: r.surprise, guide: r.guide, react: post / pre - 1, kind, pred, hit: pred ? pred === kind : null, explain: FD.explain(g, c, k), pre, post, held: st.sh[c.id] || 0 });
     }
+    const mc = g.macro[k], dr = mc.rate - mc.prevRate, kindM = dr >= 0.004 ? 'up' : dr <= -0.004 ? 'down' : 'flat';
+    if (st.mpred) { st.score.total++; if (st.mpred === kindM) st.score.right++; }
     st.phase = 'post';
-    st.results.push({ d: st.d, k, res });
+    st.results.push({ d: st.d, k, res, macro: { pred: st.mpred || null, kind: kindM, hit: st.mpred ? st.mpred === kindM : null } });
     st.eq.push(FD.equity(g, st));
     return { ok: true, res };
   };
   FD.next = function (g, st) {
     if (st.phase !== 'post') return { ok: false };
     if (st.d + 1 >= g.Q) { st.ended = true; return { ok: true, done: true }; }
-    st.d++; st.phase = 'pre'; st.preds = {};
+    st.d++; st.phase = 'pre'; st.preds = {}; st.mpred = null;
     return { ok: true, done: false };
   };
 

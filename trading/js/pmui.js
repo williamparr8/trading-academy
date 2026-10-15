@@ -144,6 +144,12 @@
       <p class="mt-note">Part du risque : un actif léger mais volatil peut dominer le risque. Rouge : corrélation élevée (peu de diversification) ; bleu : négative.</p></div></div>`;
   }
 
+  // question de jugement en attente : le mois ne peut pas avancer tant qu'elle n'a pas de réponse
+  function askHTML() {
+    const ask = S.st.pending && PM.askOf(S.g, S.st.pending);
+    if (!ask) return '';
+    return `<div class="mt-win pm-ask"><header class="mt-wh"><b>Décision de jugement</b></header><div class="mt-wb pm-pad"><p><b>${esc(ask.q)}</b></p>${ask.opts.map((o, i) => `<button type="button" class="ex-opt" data-pm-ans="${i}">${esc(o.t)}</button>`).join('')}</div></div>`;
+  }
   // conseil du mentor : ce qu'un gestionnaire senior te dirait en regardant l'écran
   function mentor(chk, cur, saa, L) {
     const bad = chk.filter((c) => !c.ok);
@@ -179,7 +185,7 @@
     const trades = st.trades.slice().reverse().slice(0, 4).map((t) => `<li><small>Mois ${t.m}</small> ${money(t.traded)} échangés, frais ${money(t.cost)}${t.note ? ` — « ${esc(t.note)} »` : ''}</li>`).join('');
     root.innerHTML = `
       <div class="mt-bar pm-bar" role="toolbar" aria-label="Actions du gestionnaire">
-        <button class="btn primary" type="button" data-pm="next">Mois suivant ▶</button>
+        <button class="btn primary" type="button" data-pm="next"${st.pending ? ' disabled title="Réponds d’abord à la question du client"' : ''}>Mois suivant ▶</button>
         <span class="mt-sep"></span>
         <button class="btn" type="button" data-pm="apply" id="pm-apply">Appliquer les cibles</button>
         <button class="btn ghost" type="button" data-pm="saa">Cibles = politique</button>
@@ -199,6 +205,7 @@
             <p class="fine">Frais : de 0,03 % à 0,15 % du montant échangé selon le FNB. Retraits ou cotisations : ${st.flow ? (st.flow > 0 ? '+' : '−') + money(Math.abs(st.flow)) + ' par mois' : 'aucun'}.</p>
           </div></aside>
         <section class="pm-center">
+          ${askHTML()}
           <div class="mt-win"><header class="mt-wh"><b>Valeur du compte et indice de politique</b><span class="mt-wsub"><i class="lg p"></i>Portefeuille <i class="lg b"></i>Indice</span></header>
             <div class="pm-chart">${chartSVG()}</div></div>
           <div class="mt-win"><header class="mt-wh"><b>Allocation</b><span class="mt-wsub">cibles : <span id="pm-sum" class="${Math.abs(sumT - 1) <= 1.0001 && sumT <= 1.0001 ? '' : 'neg'}">${p1(sumT)}</span> en FNB, reste en encaisse</span></header>
@@ -305,10 +312,10 @@
           <div class="pm-big ${sc.grade <= 'B' ? 'pos' : sc.grade >= 'D' ? 'neg' : ''}">${sc.grade}</div><p class="pm-score">${Math.round(sc.total)} sur 100</p>
           <p class="hint">${esc(dateOf(d0))} → ${esc(dateOf(d1))} · ${st.mon.length} mois · code ${esc(S.code)}</p>
           <p class="hint">Valeur finale : <b>${money(ev.finalValue)}</b></p>
-          <dl class="pm-parts"><dt>Conformité à la politique (40 %)</dt><dd>${Math.round(sc.cons)}${bar(sc.cons)}</dd>
-          <dt>Performance contre l’indice (25 %)</dt><dd>${Math.round(sc.perf)}${bar(sc.perf)}</dd>
+          <dl class="pm-parts"><dt>Conformité à la politique (${sc.eth == null ? 40 : 35} %)</dt><dd>${Math.round(sc.cons)}${bar(sc.cons)}</dd>
+          <dt>Performance contre l’indice (${sc.eth == null ? 25 : 20} %)</dt><dd>${Math.round(sc.perf)}${bar(sc.perf)}</dd>
           <dt>Objectif du client (20 %)</dt><dd>${Math.round(sc.obj)}${bar(sc.obj)}</dd>
-          <dt>Discipline : rotation et frais (15 %)</dt><dd>${Math.round(sc.disc)}${bar(sc.disc)}</dd></dl>
+          <dt>Discipline : rotation et frais (${sc.eth == null ? 15 : 10} %)</dt><dd>${Math.round(sc.disc)}${bar(sc.disc)}</dd>${sc.eth == null ? '' : `<dt>Jugement et déontologie (15 %)</dt><dd>${Math.round(sc.eth)}${bar(sc.eth)}</dd>`}</dl>
         </div></section>
         <section class="mt-win pm-res"><header class="mt-wh"><b>Résultats</b></header><div class="mt-wb"><table class="mt-tbl"><thead><tr><th></th><th class="r">Portefeuille</th><th class="r">Indice de politique</th></tr></thead><tbody>
           ${kpi('Rendement total', ev.tot, ev.btot, sp1)}${kpi('Rendement annualisé', ev.ann, ev.bann, sp1)}${kpi('Volatilité annualisée', ev.vol, ev.bvol, p1, 'low')}
@@ -337,6 +344,12 @@
   /* ---------- événements ---------- */
   function bind() {
     document.addEventListener('click', (e) => {
+      const ans = e.target.closest('[data-pm-ans]');
+      if (ans && S.g && S.st) {
+        const r = PM.answer(S.g, S.st, +ans.dataset.pmAns);
+        if (r.ok) { S.msg = r.fb; persist(); render(); }
+        return;
+      }
       const h = e.target.closest('[data-pm-home]');
       if (h) {
         const a = h.dataset.pmHome;

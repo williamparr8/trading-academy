@@ -180,6 +180,7 @@
         <aside class="mt-win pm-left"><header class="mt-wh"><b>Sociétés</b></header><div class="mt-wb">
           <table class="mt-tbl"><thead><tr><th>Symbole</th><th class="r">Prix</th><th class="r">Var.</th><th class="r">P/E</th><th>${pre ? 'Résultats' : ''}</th></tr></thead><tbody>${list}</tbody></table>
           <p class="mt-note">${pre ? 'Prédis chaque publication : bat, en ligne (±3 %) ou déçoit le consensus.' : 'Var. = depuis la dernière publication.'}</p>
+          <p class="sub-t" style="padding:0 10px">Banque centrale ce trimestre</p><div style="padding:0 10px 6px">${pre ? `<select class="fd-pred" data-fd-mpred aria-label="Prédiction du taux directeur"><option value="">? (facultatif)</option><option value="up"${st.mpred === 'up' ? ' selected' : ''}>Hausse des taux</option><option value="flat"${st.mpred === 'flat' ? ' selected' : ''}>Taux stables</option><option value="down"${st.mpred === 'down' ? ' selected' : ''}>Baisse des taux</option></select>` : (() => { const m = st.results[st.results.length - 1].macro; const w = { up: 'hausse', flat: 'stables', down: 'baisse' }; return `Résultat : <b>${w[m.kind]}</b>${m.pred ? (m.hit ? ' <b class="pos">✓</b>' : ' <b class="neg">✗</b>') : ''}`; })()}</div>
           <p class="sub-t" style="padding:0 10px">Conseil du mentor</p><p class="hint" style="padding:0 10px 8px">${esc(mentor())}</p></div></aside>
         <section class="pm-center">
           <div class="mt-win"><header class="mt-wh"><b>${esc(c.name)}</b><span class="mt-wsub">${esc(FD.SECTORS[c.sec].name)} · ${esc(c.blurb)}</span></header>
@@ -309,6 +310,7 @@
       else if (a === 'replay') start(S.code, S.Q);
     });
     document.addEventListener('change', (e) => {
+      if (e.target.dataset && e.target.dataset.fdMpred != null && S.st) { FD.predictMacro(S.st, e.target.value); persist(); return; }
       const p = e.target.dataset && e.target.dataset.fdPred;
       if (p && S.st) { FD.predict(S.st, p, e.target.value); persist(); }
     });

@@ -30,6 +30,8 @@
     { id: 'streak7', name: 'Une semaine de suite', desc: 'Joue sept jours consécutifs.' },
     { id: 'pattern1', name: 'Œil de chartiste', desc: 'Termine une Chasse aux figures.' },
     { id: 'patternAce', name: 'Sans faute chartiste', desc: 'Au moins 9 figures sur 10 reconnues.' },
+    { id: 'exam', name: 'Examen réussi', desc: 'Obtiens 70 % ou plus à l’examen blanc.' },
+    { id: 'exam90', name: 'Mention excellence', desc: 'Obtiens 90 % ou plus à l’examen blanc.' },
     { id: 'boss', name: 'Boss de la semaine', desc: 'Obtiens au moins B au mandat de crise de la semaine.' },
     { id: 'all', name: 'Touche-à-tout', desc: 'Termine une séance de chaque mode : partie, mandat, saison et flash.' },
   ];
@@ -92,6 +94,12 @@
       add(20, 'séance terminée'); add(Math.min(60, Math.max(0, e.total) * 5), 'résultat en R');
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
       out.badges.push('flash1'); if (e.total >= 5) out.badges.push('flashPos');
+    } else if (e.kind === 'exam') {
+      const f = e.review ? 0.5 : 1;
+      add(f * (15 + e.pct * 30), `${Math.round(e.pct * 100)} % à l’examen`);
+      if (e.pass && !e.review) add(30, 'examen réussi');
+      if (!e.review && e.pass) out.badges.push('exam');
+      if (!e.review && e.pct >= 0.9) out.badges.push('exam90');
     } else if (e.kind === 'pattern') {
       add(15 + e.right * 4, `${e.right} figures sur ${e.total}`);
       out.badges.push('pattern1'); if (e.right >= 9) out.badges.push('patternAce');

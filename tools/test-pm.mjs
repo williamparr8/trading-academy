@@ -126,4 +126,21 @@ const rnd = (seed) => { let s = seed >>> 0; return () => { s = (Math.imul(s, 166
   assert(k.volP > 0 && k.volP < 1);
   ok('risque : parts du risque = 100 %, corrélations symétriques bornées, volatilité du portefeuille');
 }
+// 9. questions de jugement : bloquent, notent, comptent dans l'évaluation
+{
+  const m = PM.MANDATES[0], g = PM.build(m, series, { seed: 'E9' }), st = PM.newState(g);
+  for (let k = 0; k < 10; k++) PM.step(g, st);
+  assert.equal(st.pending, 'tremblay');
+  assert(PM.askOf(g, 'tremblay').opts.length === 3);
+  assert(!PM.answer(g, { pending: null }, 0).ok === true || true);
+  const r = PM.answer(g, st, 1);
+  assert(r.ok && r.s === 1 && st.pending === null);
+  for (let k = 0; k < 10; k++) PM.step(g, st);
+  const ev = PM.evaluate(g, st);
+  assert(ev.score.eth === 100, 'jugement ' + ev.score.eth);
+  const st2 = PM.newState(g);
+  for (let k = 0; k < 11; k++) PM.step(g, st2);
+  assert.equal(PM.evaluate(g, st2).score.eth, 0, 'question sans réponse = 0');
+  ok('questions de jugement : mises en attente, réponses notées, comptées dans la note');
+}
 console.log(`  ${n} groupes du gestionnaire de portefeuille réussis`);

@@ -47,6 +47,11 @@
       bench: { SPY: 0.2, XIU_TO: 0.1, TLT: 0.35, GLD: 0.05, CASH: 0.3 },
       cons: [{ k: 'maxDD', v: 0.12 }, { k: 'maxEquity', v: 0.4 }, { k: 'minCash', v: 0.05 }, { k: 'maxPos', v: 0.3 }],
       events: [
+        { m: 10, text: 'Mme Tremblay vous téléphone au sujet d’une idée de placement.', ask: { id: 'tremblay', q: 'Mme Tremblay a vu à la télévision qu’une action technologique a doublé. Elle te demande de placer 25 % de son compte dans le Nasdaq-100. Que fais-tu ?', opts: [
+          { t: 'J’exécute : c’est son argent et c’est elle qui décide.', s: 0, fb: 'Le gestionnaire doit vérifier la convenance du placement. Son énoncé limite les actions à 40 % et sa tolérance au risque est faible : exécuter sans la mettre en garde est un manquement.' },
+          { t: 'J’explique les risques, je documente la discussion et je propose une petite position compatible avec sa politique.', s: 1, fb: 'Bonne pratique : informer, documenter et proposer une solution conforme à l’énoncé de politique.' },
+          { t: 'Je refuse sans en parler davantage.', s: 0.5, fb: 'Tu protèges le portefeuille, mais le client doit comprendre pourquoi : la communication fait partie du devoir de diligence.' },
+        ] } },
         { m: 18, text: 'Mme Tremblay doit refaire son toit : retrait exceptionnel de 8 000 $ ce mois-ci.', once: -8000 },
         { m: 36, text: 'Ses dépenses augmentent : les retraits passent à 800 $ par mois.', setFlow: -800 },
       ] },
@@ -56,6 +61,11 @@
       bench: { SPY: 0.4, QQQ: 0.1, XIU_TO: 0.2, TLT: 0.2, GLD: 0.05, CASH: 0.05 },
       cons: [{ k: 'maxDD', v: 0.35 }, { k: 'maxPos', v: 0.4 }, { k: 'minCash', v: 0.02 }],
       events: [
+        { m: 12, text: 'Un ancien collègue vous confie une information.', ask: { id: 'initie', q: 'Un ancien collègue t’apprend, en confidence, qu’une société canadienne annoncera demain une acquisition qui fera bondir son titre. Il te conseille d’acheter le FNB S&P/TSX 60 ce soir. Que fais-tu ?', opts: [
+          { t: 'Je n’achète pas, et je signale la situation à la conformité.', s: 1, fb: 'Une information privilégiée ne doit pas être utilisée. Tu t’abstiens et tu protèges ton employeur en le signalant.' },
+          { t: 'Je n’achète pas, mais je n’en parle à personne.', s: 0.5, fb: 'Tu t’abstiens, ce qui est essentiel. Signaler protège aussi ton employeur et toi.' },
+          { t: 'J’achète : le FNB est diversifié, ce n’est pas un délit d’initié.', s: 0, fb: 'Utiliser une information privilégiée est interdit, même indirectement : le FNB contient la société concernée.' },
+        ] } },
         { m: 24, text: 'Alex reçoit une prime : cotisation exceptionnelle de 15 000 $.', once: 15000 },
         { m: 40, text: 'Il achète une maison dans deux ans : sa tolérance à la perte baisse, plafond ramené à 20 %.', setCons: { maxDD: 0.2 } },
       ] },
@@ -65,6 +75,11 @@
       bench: { SPY: 0.3, XIU_TO: 0.15, IWM: 0.05, TLT: 0.3, GLD: 0.1, CASH: 0.1 },
       cons: [{ k: 'maxDD', v: 0.22 }, { k: 'maxPos', v: 0.3 }, { k: 'ban', ids: ['XEG_TO'] }, { k: 'minCash', v: 0.03 }],
       events: [
+        { m: 14, text: 'Un courtier invite la fondation.', ask: { id: 'courtier', q: 'Un courtier offre au conseil des billets pour la finale du championnat, en échange de lui confier plus d’ordres, même si ses frais sont plus élevés. Que fais-tu ?', opts: [
+          { t: 'J’accepte : les billets sont pour le conseil, pas pour moi.', s: 0, fb: 'Conflit d’intérêts : le gestionnaire doit obtenir la meilleure exécution pour le client, quels que soient les avantages offerts.' },
+          { t: 'Je refuse l’offre et je la déclare à la conformité.', s: 1, fb: 'Bonne pratique : la priorité est le client, et les cadeaux sont déclarés.' },
+          { t: 'Je refuse les billets, mais je continue de lui confier des ordres.', s: 0.5, fb: 'Tu évites le cadeau, mais le choix du courtier doit reposer sur la meilleure exécution, pas sur la relation.' },
+        ] } },
         { m: 20, text: 'Le conseil adopte une politique plus prudente : au plus 55 % en actions.', setCons: { maxEquity: 0.55 }, addCons: [{ k: 'maxEquity', v: 0.55 }] },
         { m: 42, text: 'Une campagne de dons ajoute 40 000 $ au fonds.', once: 40000 },
       ] },
@@ -74,6 +89,11 @@
       bench: { SPY: 0.35, XIU_TO: 0.25, TLT: 0.4 },
       cons: [{ k: 'maxActive', v: 0.15 }, { k: 'maxTE', v: 0.05 }, { k: 'maxDD', v: 0.25 }],
       events: [
+        { m: 18, text: 'Un membre du comité fait une demande.', ask: { id: 'comite', q: 'Un membre du comité veut surpondérer l’énergie de 25 points par rapport à l’indice, au-delà de la limite d’écart de 15 points de l’énoncé. Que fais-tu ?', opts: [
+          { t: 'J’exécute sur instruction verbale : on régularisera plus tard.', s: 0, fb: 'Dépasser une limite sans autorisation écrite expose le gestionnaire et le régime. La politique se modifie par écrit.' },
+          { t: 'Je demande une modification écrite de l’énoncé, approuvée par le comité, avant d’agir.', s: 1, fb: 'Bonne pratique : la politique est un contrat ; on la change formellement, jamais de fait.' },
+          { t: 'Je limite l’écart à 15 points sans rien dire.', s: 0.5, fb: 'Tu respectes la limite, mais le comité doit savoir pourquoi sa demande n’a pas été suivie.' },
+        ] } },
         { m: 30, text: 'Le comité resserre le risque actif : erreur de suivi maximale ramenée à 3 %.', setCons: { maxTE: 0.03 } },
       ] },
   ];
@@ -246,6 +266,7 @@
       if (ev.m !== st.m) continue;
       msgs.push(ev.text);
       st.log.push({ m: st.m, kind: 'event', text: ev.text });
+      if (ev.ask) st.pending = ev.ask.id;
       if (ev.setFlow != null) { st.flow = ev.setFlow; flow = st.flow; }
       if (ev.once) flow += ev.once;
       if (ev.setCons) for (const c of st.cons) if (ev.setCons[c.k] != null) c.v = ev.setCons[c.k];
@@ -255,6 +276,18 @@
     raise(g, st);
     st.vpre = PM.value(g, st).total;
     return { ok: true, done: false, events: msgs, flow };
+  };
+
+  // questions de jugement : une réponse par question, comptée dans la note finale
+  PM.askOf = (g, id) => { for (const e of g.mand.events || []) if (e.ask && e.ask.id === id) return e.ask; return null; };
+  PM.answer = function (g, st, idx) {
+    const ask = st.pending && PM.askOf(g, st.pending);
+    if (!ask || !ask.opts[idx]) return { ok: false };
+    st.answers = st.answers || {};
+    st.answers[ask.id] = { i: idx, s: ask.opts[idx].s };
+    st.log.push({ m: st.m, kind: ask.opts[idx].s >= 1 ? 'info' : 'warn', text: ask.opts[idx].fb });
+    st.pending = null;
+    return { ok: true, s: ask.opts[idx].s, fb: ask.opts[idx].fb };
   };
 
   /* ---------- mesures ---------- */
@@ -307,12 +340,14 @@
     const sPerf = clamp(50 + 1000 * (ann - bann) + 20 * ((sharpe || 0) - (sharpeB || 0)), 0, 100);
     const sObj = m.objective.type === 'abs' ? (objMet ? 100 : clamp((100 * ann) / m.objective.ret, 0, 100)) : (objMet ? 100 : clamp(100 - 2000 * (bann - ann), 0, 100));
     const sDisc = clamp(100 - 25 * Math.max(0, turnover - 1), 0, 100);
-    const score = 0.4 * sCons + 0.25 * sPerf + 0.2 * sObj + 0.15 * sDisc;
+    const asks = (m.events || []).filter((e) => e.ask && e.m <= st.m).map((e) => e.ask);
+    const sEth = asks.length ? (100 * asks.reduce((s, a) => s + ((st.answers && st.answers[a.id]) ? st.answers[a.id].s : 0), 0)) / asks.length : null;
+    const score = sEth == null ? 0.4 * sCons + 0.25 * sPerf + 0.2 * sObj + 0.15 * sDisc : 0.35 * sCons + 0.2 * sPerf + 0.2 * sObj + 0.1 * sDisc + 0.15 * sEth;
     const grade = score >= 85 ? 'A' : score >= 72 ? 'B' : score >= 58 ? 'C' : score >= 45 ? 'D' : 'E';
     const ev = { tot, btot, ann, bann, vol: sp * Math.sqrt(12), bvol: sb * Math.sqrt(12), dd: ddOf(P), bdd: ddOf(B), sharpe, sharpeB,
       sortino: down(ex) > 0 ? (mean(ex) / down(ex)) * Math.sqrt(12) : null, te, ir, beta, alpha, var95, upCap: cap(upIdx), dnCap: cap(dnIdx),
       attr, costDrag, resid, types, monthsBad, monthsChk, turnover, costs: st.costs, objMet,
-      score: { cons: sCons, perf: sPerf, obj: sObj, disc: sDisc, total: score, grade }, finalValue: PM.value(g, st).total };
+      score: { cons: sCons, perf: sPerf, obj: sObj, disc: sDisc, eth: sEth, total: score, grade }, asks, finalValue: PM.value(g, st).total };
     ev.notes = PM.coach(g, st, ev);
     return ev;
   };
@@ -338,6 +373,10 @@
     if (dnc != null && dnc < 0.9 && act >= -0.005) add('good', 'Bonne protection', `Capture à la baisse de ${pct(dnc)} : tu as mieux protégé le capital que l’indice dans les mois négatifs.`);
     const cashAvg = mean(st.mon.map((x) => x.w.CASH || 0)), cashB = m.bench.CASH || 0;
     if (cashAvg > cashB + 0.15) add('warn', 'Trop d’encaisse', `Ton encaisse moyenne (${pct(cashAvg)}) dépasse celle de la politique de ${pct(cashAvg - cashB)} : la prudence a un coût de renonciation.`);
+    if (ev.score.eth != null) {
+      if (ev.score.eth >= 99) add('good', 'Jugement irréprochable', 'Tu as pris la bonne décision à chaque question de déontologie : informer le client, documenter, refuser les conflits d’intérêts.');
+      else add('warn', 'Jugement à travailler', 'Au moins une de tes décisions de déontologie ou de convenance n’était pas idéale. Relis les explications dans le journal : ces situations arrivent vraiment, et une erreur de jugement coûte plus cher qu’une erreur de marché.');
+    }
     if (!ev.objMet) add('warn', 'Objectif non atteint', m.objective.type === 'abs' ? `Il fallait ${pct(m.objective.ret)} par an ; tu as fait ${pct(ev.ann)}.` : 'Tu n’as pas battu l’indice de politique net de frais.');
     else add('good', 'Objectif atteint', m.objective.type === 'abs' ? `Objectif de ${pct(m.objective.ret)} atteint (${pct(ev.ann)}).` : 'Tu as battu l’indice de politique net de frais.');
     return out;
