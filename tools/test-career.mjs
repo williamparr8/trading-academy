@@ -71,4 +71,17 @@ ok('grades, progression vers le grade suivant, code du jour reproductible');
   assert(b.xp < a.xp * 0.3, 'même code : points réduits ' + a.xp + ' -> ' + b.xp);
   ok('anti-farm : partie vide sans points, code rejoué fortement réduit');
 }
+{
+  const w0 = (CR.state().wk || { xp: 0 }).xp;
+  const r = CR.apply({ kind: 'review', right: 8, total: 10, mastered: 2, masteredTotal: 25 });
+  assert(r.xp >= 32 && r.badges.includes('rev1') && r.badges.includes('rev25'), JSON.stringify(r));
+  const c = CR.apply({ kind: 'chron', id: 'x', grade: 'A', score: 90, ret: 0.1, beat: true, doneCount: 8, total: 8, code: 'chron-x' });
+  assert(c.badges.includes('chron1') && c.badges.includes('chronA') && c.badges.includes('chronAll'));
+  assert(c.xp >= 130, 'chronique : points ' + c.xp);
+  const st = CR.state();
+  assert.equal(st.wk.week, CR.weekStart());
+  assert.equal(st.wk.xp, w0 + r.xp + c.xp, 'points de la semaine cumulés pour la ligue');
+  assert.equal(CR.giveBadge('leaguePromo'), true); assert.equal(CR.giveBadge('leaguePromo'), false);
+  ok('révision, chronique, points de la semaine et badge de ligue');
+}
 console.log(`  ${n} groupes de la carrière réussis`);

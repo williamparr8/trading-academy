@@ -35,6 +35,15 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
 - **Atelier EPP** (six dossiers de clients : tolérance au risque, contraintes, allocation), **missions de partie**, **glossaire** de 50 termes,
   outil **Fibonacci**, jeux de couleurs du graphique, mode **chrono** du Flash, coach IA des rapports (page privée seulement).
 - **Carrière** : points d’expérience, neuf grades, série de jours, objectifs et défi du jour, boss de la semaine, badges, parcours recommandé.
+- **Chroniques** : huit épisodes réels des marchés (2008, COVID, inflation 2022, Brexit et élection de 2016, bulle du bitcoin,
+  pétrole 2014, banques 2023, droits de douane 2025) vécus décision après décision : contexte de l'époque, répartition de 100 000 $
+  entre cinq placements et du cash, vraies cotes, bilan face à un 60/40 passif.
+- **Révision espacée** : les questions ratées (campagne, examen blanc, quiz) entrent dans un carnet d'erreurs et reviennent à
+  1, 3, 7, 16 puis 35 jours ; cinq réussites de suite la rendent « maîtrisée ».
+- **Ligue hebdomadaire** : classement aux points d'expérience contre sept rivaux fictifs (déterministes), cinq ligues,
+  promotion des trois premiers, relégation des deux derniers.
+- **Sons et animations** : sons synthétisés (WebAudio, désactivables), transitions et retours visuels ; respecte « réduire les animations ».
+- **Appli installable et hors ligne** (site public) : manifeste, icônes et service worker ; les cotes ouvertes restent disponibles hors ligne.
 - **Graphique à la TradingView** : indicateurs ajoutables et retirables avec leurs paramètres (moyennes mobiles,
   Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et
   objectif posés ou glissés directement sur le graphique. Le coach juge tes stops, objectifs et entrées d'après les
