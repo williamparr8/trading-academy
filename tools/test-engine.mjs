@@ -1187,5 +1187,6 @@ await import('./test-flash.mjs');   // flash technique
 await import('./test-career.mjs');   // carrière
 await import('./test-pattern.mjs');   // figures et commentaires
 await import('./test-exam.mjs');   // examen blanc
+await import('./test-camp.mjs');   // campagne
 console.log(`\n${n} groupes de tests reussis`);
 console.log(TA.fmt.money(1234.5), '|', TA.fmt.smoney(-12.3), '|', TA.fmt.spct(0.0321), '|', TA.fmt.date(TA.dayFromISO('2008-09-15')));

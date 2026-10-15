@@ -713,6 +713,27 @@ tr[data-fd-sel]{cursor:pointer}
 .ex-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
 .ex-nav button{padding:4px 0;border:1px solid var(--line-2);background:#fff;font-size:12px;cursor:pointer}
 .ex-nav button.done{background:var(--accent-a)}.ex-nav button.cur{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
+.cp-map{display:grid;gap:10px;padding:10px;max-width:1100px;margin:0 auto;width:100%}
+.cp-ch.lock{opacity:.6}
+.cp-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:8px;background:#fff}
+.cp-tile{display:flex;flex-direction:column;gap:2px;padding:8px;border:1px solid var(--line-2);background:#fff;text-align:left;cursor:pointer;min-height:86px;border-radius:2px;color:var(--text)}
+.cp-tile b{font-size:15px}.cp-tile span{font-size:12px;color:var(--muted);flex:1}
+.cp-tile i{font-style:normal;color:#b8860b;letter-spacing:2px;font-size:13px}
+.cp-tile.next{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.cp-tile.boss{background:#fff8e6;border-color:#d9a400}.cp-tile.done{background:#f1f8f1}
+.cp-tile.lock{background:#efefef;color:#9a9a9a;cursor:not-allowed}.cp-tile.lock span{color:#9a9a9a}
+.cp-level,.cp-play{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:10px;max-width:900px;margin:0 auto;width:100%;box-sizing:border-box}
+.cp-level>*,.cp-play>*,.cp-map>*{min-width:0}
+.cp-play .fl-svg,.cp-play svg{max-width:100%;height:auto}
+.cp-quote{font-style:italic;border-left:3px solid var(--accent);padding-left:10px;margin:0 0 8px}
+.cp-tiers{display:grid;gap:8px}.cp-tier{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px}
+.cp-tier span{font-size:12px;font-weight:400}
+.cp-opts{display:grid;gap:6px;margin-top:10px}
+.cp-num{display:flex;align-items:center;gap:8px;margin-top:10px}.cp-num input{width:170px}
+.cq-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.cq-mini{background:#000;padding:4px}.cq-mini b{color:#fff;font-size:12px}
+.cp-stars{font-size:26px;color:#b8860b;letter-spacing:4px;margin:0}
+.cp-play .mt-tbl{margin:8px 0;max-width:640px}
+@media (max-width:700px){.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cq-grid{grid-template-columns:1fr}}
 .gl-list{max-height:340px;overflow:auto;border:1px solid var(--line);padding:4px 10px;background:#fff}
 .gl-row{padding:6px 0;border-bottom:1px solid #eee}.gl-row p{margin:2px 0 0;font-size:13px;color:var(--muted)}.gl-row .tag{font-size:10.5px;padding:0 6px;margin-left:6px}
 .ips-facts{margin:0 0 8px;padding-left:18px;font-size:13.5px}.ips-facts li{margin:3px 0}
@@ -765,6 +786,7 @@ body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm=
     </div>
     <div class="side-stack">
       <section class="card" id="career-card" aria-label="Carrière"></section>
+      <section class="card" id="camp-card" aria-label="Campagne" data-hm="camp"></section>
       <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel" data-hm="learn"></section>
       <section class="card" id="pm-card" aria-label="Gestionnaire de portefeuille" data-hm="pm"></section>
       <section class="card" id="ips-card" aria-label="Atelier EPP" data-hm="pm"></section>
@@ -1047,6 +1069,7 @@ body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm=
   <main class="pm" id="screen-pattern" hidden></main>
   <main class="pm" id="screen-exam" hidden></main>
   <main class="pm" id="screen-ips" hidden></main>
+  <main class="pm" id="screen-camp" hidden></main>
 </div>
 <div class="minibar" id="minibar" hidden>
   <div class="mb-info"><span class="mb-px" id="mb-px"></span><span class="mono" id="mb-pnl"></span></div>
@@ -1073,6 +1096,9 @@ body[data-hm="trade"] .side-stack>[data-hm]:not([data-hm="trade"]),body[data-hm=
 <script src="js/flash.js"></script>
 <script src="js/pattern.js"></script>
 <script src="js/exam.js"></script>
+<script src="js/camp-gen.js"></script>
+<script src="js/camp-data.js"></script>
+<script src="js/camp.js"></script>
 <script src="js/glossary.js"></script>
 <script src="js/ips.js"></script>
 <script src="js/career.js"></script>

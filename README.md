@@ -20,6 +20,9 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   observation du marché (Bid / Ask), navigateur d'indicateurs (double-clic), graphique noir, fenêtre d'ordre à deux boutons
   Vendre (rouge, au Bid) et Acheter (bleu, à l'Ask), boîte à outils (Trading, Ordres, Historique, Coach) et barre d'état.
   Présentation inspirée de MetaTrader 5 ; les données et le compte restent virtuels.
+- **Campagne « La Maison Boréale »** : 100 niveaux linéaires, une compétence par niveau (bougies, tendance, indicateurs, figures,
+  gestion du trade, états financiers, valorisation, résultats, portefeuille, mesure et déontologie), trois difficultés par niveau
+  (Apprenti, Compagnon, Maître), une histoire en dix chapitres, exercices générés sur de vraies données.
 - **Gestionnaire de portefeuille** : quatre mandats de clients (retraitée, jeune professionnel, fondation, régime de retraite)
   avec énoncé de politique, indice de politique, contraintes vérifiées chaque mois, événements, questions de déontologie,
   risque et corrélations ; rapport façon CFA (Sharpe, Sortino, information, alpha, capture, VaR, attribution) et lettre au client.

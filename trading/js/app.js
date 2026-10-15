@@ -122,12 +122,12 @@
   App.show = (n) => show(n);   // pour l’écran du gestionnaire de portefeuille (pmui.js)
   function show(name) {
     App.screen = name;
-    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm', 'fund', 'flash', 'pattern', 'exam', 'ips']) $('#screen-' + s).hidden = s !== name;
-    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips';
+    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm', 'fund', 'flash', 'pattern', 'exam', 'ips', 'camp']) $('#screen-' + s).hidden = s !== name;
+    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips' || name === 'camp';
     if (name !== 'board') closeBoard();
     $('#ctx').hidden = name !== 'game';
     $('#minibar').hidden = name !== 'game';
-    document.body.classList.toggle('in-game', name === 'game' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips');
+    document.body.classList.toggle('in-game', name === 'game' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips' || name === 'camp');
     window.scrollTo(0, 0);
   }
 

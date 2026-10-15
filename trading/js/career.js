@@ -39,6 +39,8 @@
     { id: 'all', name: 'Touche-à-tout', desc: 'Termine une séance de chaque mode : partie, mandat, saison et flash.' },
   ];
 
+  for (let i = 1; i <= 10; i++) CR.BADGES.push({ id: 'camp' + i, name: 'Chapitre ' + i, desc: 'Réussis les 10 niveaux du chapitre ' + i + ' de la campagne.' });
+  CR.BADGES.push({ id: 'campAll', name: 'Gestionnaire de la Maison Boréale', desc: 'Termine le niveau 100 de la campagne.' }, { id: 'campGold', name: 'Maîtrise totale', desc: 'Obtiens trois étoiles aux 100 niveaux.' });
   const KEY = 'ta:career';
   const blank = () => ({ v: 1, xp: 0, days: { last: null, streak: 0, best: 0 }, daily: { date: null, done: {} }, badges: {}, stats: { game: 0, pm: 0, fund: 0, flash: 0, quiz: 0 }, quizPass: {}, log: [] });
   const store = {
@@ -113,6 +115,11 @@
       if (e.taken && e.wins / e.taken >= 0.5) add(10, 'plus de la moitié de réussite');
       if (e.taken >= 3) out.badges.push('flash1');
       if (e.total >= 5) out.badges.push('flashPos');
+    } else if (e.kind === 'camp') {
+      const base = [10, 20, 35][e.tier] || 10;
+      add(base * (e.boss ? 1.5 : 1), `campagne : niveau ${e.n}, palier ${e.tier + 1}`);
+      if (e.pct >= 1) add(8, 'sans faute');
+      (e.badgeIds || []).forEach((id) => out.badges.push(id));
     } else if (e.kind === 'ips') {
       add(20 + e.score * 0.4, `atelier EPP : ${Math.round(e.score)} sur 100`);
       out.badges.push('ips1'); if (e.score >= 80) out.badges.push('ips80');
@@ -273,14 +280,17 @@
   (function homeModes() {
     const card = $('#career-card');
     if (!card || $('#home-modes')) return;
-    const modes = [['trade', 'Trading'], ['tech', 'Technique'], ['fund', 'Analyste'], ['pm', 'Gestionnaire'], ['learn', 'Formation']];
-    let cur = 'trade';
+    const modes = [['camp', 'Campagne'], ['trade', 'Trading'], ['tech', 'Technique'], ['fund', 'Analyste'], ['pm', 'Gestionnaire'], ['learn', 'Formation']];
+    let cur = 'camp';
     try { const v = localStorage.getItem('ta:homemode'); if (modes.some((m) => m[0] === v)) cur = v; } catch (e) { /* rien */ }
     const seg = document.createElement('div');
     seg.className = 'seg home-modes'; seg.id = 'home-modes'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Mode de jeu');
     const paint = () => { document.body.dataset.hm = cur; seg.innerHTML = modes.map(([id, n]) => `<button type="button" data-hmode="${id}" class="${id === cur ? 'on' : ''}">${n}</button>`).join(''); };
     seg.addEventListener('click', (e) => { const b = e.target.closest('[data-hmode]'); if (!b) return; cur = b.dataset.hmode; try { localStorage.setItem('ta:homemode', cur); } catch (err) { /* rien */ } paint(); });
-    card.after(seg); paint();
+    const stack = card.parentNode;
+    stack.prepend(seg);                       // le sélecteur de mode passe en premier
+    stack.insertBefore(card, stack.querySelector(':scope > p.fine'));   // la carrière descend sous les cartes du mode
+    paint();
   })();
   // sauvegarde de la progression : export et import d'un fichier (le navigateur peut tout oublier)
   const KEYS = ['ta:career', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode'];
