@@ -16,6 +16,10 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   Débutant à Pro qui se gagnent par la discipline et non par les gains.
 - **Statistiques de fin de partie** : rendement, Sharpe, drawdown, taux de réussite, gain et perte moyens,
   comparaison avec l'acheter-conserver et avec les indices S&P 500 et S&P/TSX.
+- **Plateforme façon MetaTrader 5** : fenêtre claire avec menus (Fichier, Affichage, Insertion, Graphiques, Outils, Fenêtre, Aide),
+  observation du marché (Bid / Ask), navigateur d'indicateurs (double-clic), graphique noir, fenêtre d'ordre à deux boutons
+  Vendre (rouge, au Bid) et Acheter (bleu, à l'Ask), boîte à outils (Trading, Ordres, Historique, Coach) et barre d'état.
+  Présentation inspirée de MetaTrader 5 ; les données et le compte restent virtuels.
 - **Graphique à la TradingView** : indicateurs ajoutables et retirables avec leurs paramètres (moyennes mobiles,
   Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et
   objectif posés ou glissés directement sur le graphique. Le coach juge tes stops, objectifs et entrées d'après les

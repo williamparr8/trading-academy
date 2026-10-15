@@ -1,20 +1,21 @@
 <title>Trading Academy</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Mise en page : terminal de courtage sombre. Graphique large à gauche, colonne portefeuille/ordres à droite.
-   Un seul look volontaire (sombre) : fond bleuté, vert/rouge réservés aux hausses/baisses, bleu pour l'interaction. */
+/* Mise en page : plateforme de courtage façon MetaTrader 5.
+   Habillage Windows clair (gris, blanc, bleu de sélection), graphique noir, achat en bleu et vente en rouge. */
 :root{
-  color-scheme:dark;
-  --bg:#080c11; --panel:#0e141b; --panel-2:#121a23; --raise:#18222d;
-  --line:#1c2733; --line-2:#273545; --grid:#131c26;
-  --text:#dde4ec; --muted:#8493a4; --faint:#566576;
-  --up:#2dbe8b; --down:#ef5468; --accent:#6b9cff; --warn:#f0b34a; --violet:#a58bff; --cyan:#4cc3d9;
-  --up-a:rgba(45,190,139,.32); --down-a:rgba(239,84,104,.32); --accent-a:rgba(107,156,255,.14); --warn-a:rgba(240,179,74,.14);
-  --f-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
-  --f-display:'Bricolage Grotesque','IBM Plex Sans',system-ui,sans-serif;
+  color-scheme:light;
+  --bg:#f0f0f0; --panel:#ffffff; --panel-2:#f7f7f7; --raise:#e1e1e1;
+  --line:#d9d9d9; --line-2:#adadad; --grid:#ececec;
+  --text:#111111; --muted:#4d4d4d; --faint:#767676;
+  --up:#0b3fd6; --down:#d81e27; --accent:#0066cc; --warn:#a85d00; --violet:#6b3fb5; --cyan:#00798c;
+  --up-a:rgba(11,63,214,.14); --down-a:rgba(216,30,39,.14); --accent-a:rgba(0,102,204,.12); --warn-a:rgba(168,93,0,.14);
+  /* graphique : noir, comme la plateforme d'origine */
+  --ch-bg:#000000; --ch-grid:#3a3a3a; --ch-text:#d3d3d3; --ch-axis:#6a6a6a; --ch-up:#1fb36b; --ch-down:#f23d4a;
+  --ch-up-a:rgba(31,179,107,.5); --ch-down-a:rgba(242,61,74,.5); --ch-warn-a:rgba(240,179,74,.18);
+  --ch-buy:#4f9dff; --ch-sell:#ff4d4d; --ch-accent:#4f9dff; --ch-warn:#f0b34a; --ch-violet:#b69cff; --ch-cyan:#4cc3d9;
+  --f-ui:'Segoe UI',Tahoma,'Helvetica Neue',Arial,system-ui,sans-serif;
+  --f-mono:'Segoe UI',Tahoma,'Helvetica Neue',Arial,system-ui,sans-serif;
+  --f-display:'Segoe UI',Tahoma,'Helvetica Neue',Arial,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -360,6 +361,247 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
 .tuto-t .dim{font-size:12px}
 .tuto-m{font-size:12px;color:var(--muted);white-space:nowrap}
 @media (max-width:560px){.tuto{padding:10px 12px;max-height:52vh}.tuto p{font-size:13px}.tuto-pts dd{font-size:12.5px}}
+/* ===== Plateforme façon MetaTrader 5 : fenêtre Windows claire, graphique noir, boîtes ancrées ===== */
+body{font-size:13px}
+body.in-game{padding-inline:0}
+body.in-game .wrap{max-width:none}
+.btn,.seg,.seg button,input,select,.tag,.tool,.chip,.chip-x,.tuto,.toast,.opt,.cc,.jc,.lcard,.qq,.ind-panel,.ind-add{border-radius:2px}
+.card{border-radius:3px}
+.btn{background:var(--raise);font-weight:400}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.btn.buy,.btn.sell,.seg.sides button.on.buy,.seg.sides button.on.sell{color:#fff}
+.seg{background:var(--bg)}
+.seg button.on{background:#fff;color:var(--text);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg.sides button.on.buy{background:var(--up);box-shadow:none}
+.seg.sides button.on.sell{background:var(--down);box-shadow:none}
+input,select{background:#fff}
+.tag{background:#fafafa;color:var(--text)}
+.chip.on{background:var(--accent-a)}
+.tuto-hl{outline-width:2px}
+@keyframes tutoPulse{0%,100%{outline-color:var(--accent)}50%{outline-color:rgba(0,102,204,.25)}}
+.toast{box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.top{background:#fff;border-bottom:1px solid var(--line-2);padding-block:5px;gap:6px 12px}
+.brand{font:600 13px/1 var(--f-ui);letter-spacing:0;gap:7px}
+body:not(.in-game) .mt-title{display:none}
+.mt-title{min-width:0;flex:1 1 auto;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx .tag{padding:0 7px;font-size:11.5px}
+
+.game{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;background:var(--bg)}
+.game>*{min-width:0}
+
+/* ---- menus ---- */
+.mt-menubar{display:flex;align-items:stretch;gap:0;background:#f0f0f0;border-bottom:1px solid #d6d6d6;position:relative;z-index:45;overflow-x:auto;scrollbar-width:none}
+.mt-menubar::-webkit-scrollbar{display:none}
+.mt-m{padding:3px 9px;border:1px solid transparent;background:none;font-size:12px;color:var(--text);cursor:default;white-space:nowrap}
+.mt-m:hover,.mt-m.open{background:#d9ebf9;border-color:#a7cdee}
+.mt-drop{position:fixed;z-index:80;min-width:230px;padding:2px;background:#f2f2f2;border:1px solid #a0a0a0;box-shadow:2px 3px 8px rgba(0,0,0,.25)}
+.mt-mi{display:flex;align-items:center;gap:8px;width:100%;padding:3px 24px 3px 24px;border:1px solid transparent;background:none;text-align:left;font-size:12px;color:var(--text);cursor:default;position:relative;white-space:nowrap}
+.mt-mi:hover:not(:disabled){background:#91c9f7;border-color:#91c9f7}
+.mt-mi:disabled{color:#999}
+.mt-mi .ck{position:absolute;left:7px;font-size:12px}
+.mt-mi .kb{margin-left:auto;padding-left:24px;color:#555}
+.mt-msep{height:1px;margin:3px 2px;background:#cfcfcf}
+
+/* ---- barres d'outils ---- */
+.mt-bars{background:#f0f0f0;border-bottom:1px solid #a0a0a0}
+.mt-bar{display:flex;align-items:center;gap:3px 4px;flex-wrap:wrap;padding:2px 6px;min-height:29px}
+.mt-bar+.mt-bar{border-top:1px solid #dedede}
+.mt-bar .sp{flex:1}
+.mt-sep{align-self:stretch;width:1px;margin:3px 3px;background:#c4c4c4}
+.mt-ib,.mt-bar .tool,.mt-bar .btn{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid transparent;border-radius:2px;background:none;color:var(--text);font-size:12px;font-weight:400;cursor:pointer;white-space:nowrap}
+.mt-ib:hover,.mt-bar .tool:hover,.mt-bar .btn:hover:not(:disabled){background:#e5f1fb;border-color:#7eb4ea;color:var(--text)}
+.mt-ib[aria-pressed="true"],.mt-bar .tool.on{background:#cce4f7;border-color:#7eb4ea;color:var(--text)}
+.mt-bar .btn.primary{background:#e1ecf7;border-color:#7eb4ea;color:#00356b;font-weight:600}
+.mt-bar .btn.primary:hover:not(:disabled){background:#cfe3f6}
+.mt-bar .tool.sl.on{background:#fbd5d7;border-color:var(--down)}.mt-bar .tool.tp.on{background:#d3e0fb;border-color:var(--up)}
+.mt-bar .tool svg{flex:none}
+.mt-bar .seg{background:none;border-color:#c4c4c4;padding:1px}
+.mt-bar .seg button{padding:2px 8px;font-size:12px}
+.mt-bar .chart-tools{padding:0;gap:4px;flex-wrap:nowrap}
+.mt-bar .chip{padding:1px 8px;font-size:12px;background:#fff}
+.mt-bar .chip.on{background:#fff;border-color:#7eb4ea}
+.mt-bar .rt{gap:6px}
+.mt-bar .chk{color:var(--text);font-size:12px}
+.mt-prog{display:flex;flex-direction:column;gap:2px;min-width:130px}
+.mt-prog .ptxt{font:11.5px var(--f-ui);color:var(--muted)}
+.mt-prog .prog{margin-top:0;background:#d4d4d4}
+.mt-bar .btn.ghost{border-color:#c4c4c4}
+.mcall{margin:0;border-radius:0;border-width:0 0 1px;border-color:var(--down)}
+
+/* ---- corps : panneau gauche, graphique, fenêtre d'ordre ---- */
+.mt-main{display:grid;grid-template-columns:216px minmax(0,1fr) 316px;height:clamp(420px,calc(100vh - 398px),800px);background:#a0a0a0;gap:1px;border-bottom:1px solid #a0a0a0}
+.game.no-left .mt-main{grid-template-columns:minmax(0,1fr) 316px}
+.game.no-left .mt-left{display:none}
+.game.no-right .mt-main{grid-template-columns:216px minmax(0,1fr)}
+.game.no-right.no-left .mt-main{grid-template-columns:minmax(0,1fr)}
+.game.no-right .mt-right{display:none}
+.game.no-watch #mt-watch,.game.no-nav #mt-nav{display:none}
+.game.no-tool .mt-toolbox{display:none}
+.mt-left,.mt-right{display:flex;flex-direction:column;min-height:0;min-width:0;background:#fff;overflow:hidden}
+.mt-win{display:flex;flex-direction:column;min-height:0;background:#fff}
+#mt-watch{flex:0 1 46%}#mt-nav{flex:1 1 0;border-top:1px solid #a0a0a0}
+.game.no-watch #mt-nav,.game.no-nav #mt-watch{flex:1 1 0}
+.mt-wh{display:flex;align-items:center;gap:8px;min-height:22px;padding:1px 4px 1px 8px;background:#fff;border-bottom:1px solid #d0d0d0;font-size:12px;flex:none}
+.mt-wh b{font-weight:600;white-space:nowrap}
+.mt-wsub{margin-right:auto;color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mt-wh .mt-x{margin-left:auto}
+.mt-wsub+.mt-x{margin-left:0}
+.mt-x{width:18px;height:18px;border:0;background:none;color:#444;font-size:15px;line-height:1;cursor:pointer;padding:0}
+.mt-x:hover{background:#e81123;color:#fff}
+.mt-wb{flex:1;min-height:0;overflow:auto}
+.mt-wtabs{display:flex;gap:0;flex:none;background:#f0f0f0;border-top:1px solid #a0a0a0}
+.mt-wtab{padding:2px 10px;font-size:11.5px;color:var(--muted);border-right:1px solid #c4c4c4}
+.mt-wtab.on{background:#fff;color:var(--text);margin-top:-1px;border-top:1px solid #fff}
+.mt-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.mt-tbl th{position:sticky;top:0;padding:2px 6px;background:#f6f6f6;border-bottom:1px solid #c8c8c8;border-right:1px solid #dcdcdc;font-weight:400;text-align:left;color:var(--text);white-space:nowrap}
+.mt-tbl th.r,.mt-tbl td.r{text-align:right}
+.mt-tbl td{padding:1px 6px;border-bottom:1px solid #ececec;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mt-tbl tr.sel td{background:#0078d7;color:#fff}
+.mt-tbl tr.sel td .up,.mt-tbl tr.sel td .dn{color:#fff}
+.mt-tbl .up{color:var(--up)}.mt-tbl .dn{color:var(--down)}
+.mt-tbl .buy{color:var(--up)}.mt-tbl .sell{color:var(--down)}
+.mt-tbl input{padding:0 4px;height:20px;width:74px;text-align:right;font:12px var(--f-ui);border:1px solid #adadad;border-radius:0}
+.mt-tbl .xb{width:18px;height:18px;border:1px solid #bdbdbd;background:#fff;color:#444;font-size:13px;line-height:1;padding:0;cursor:pointer}
+.mt-tbl .xb:hover{background:#e81123;color:#fff;border-color:#e81123}
+.mt-tbl .mb{padding:0 8px;height:20px;border:1px solid #adadad;background:#f0f0f0;font-size:12px;cursor:pointer}
+.mt-tbl .mb:hover{background:#e5f1fb;border-color:#7eb4ea}
+.mt-tbl tr.sumrow td{background:#fafafa;font-weight:600}
+.mt-note{margin:0;padding:3px 8px;font-size:11.5px;color:var(--muted)}
+.mt-add td{color:#777;font-style:italic}
+.mt-tree{font-size:12px;padding:2px 0}
+.mt-tree ul{list-style:none;margin:0;padding:0 0 0 14px}
+.mt-tree>ul{padding-left:0}
+.mt-tree li{margin:0}
+.mt-tn{display:flex;align-items:center;gap:5px;width:100%;padding:1px 6px;border:0;background:none;text-align:left;font-size:12px;color:var(--text);cursor:default;white-space:nowrap}
+.mt-tn:hover{background:#e5f1fb}
+.mt-tn .pm{width:11px;height:11px;border:1px solid #888;font:10px/9px var(--f-ui);text-align:center;color:#444;flex:none;background:#fff}
+.mt-tn .ic{flex:none;width:12px;height:12px}
+.mt-tn.leaf{padding-left:23px;cursor:pointer}
+.mt-tn.leaf.dim{color:#8a8a8a;cursor:default}
+
+/* ---- graphique ---- */
+.mt-center{display:flex;flex-direction:column;min-width:0;min-height:0;background:#fff}
+.mt-chartbox{position:relative;flex:1;min-height:0;border:0;border-radius:0;background:#000;overflow:hidden}
+.mt-chartbox .chart{position:absolute;inset:0;height:auto;border-top:0;background:#000}
+.mt-chartbox .chart-head{position:absolute;z-index:5;left:6px;top:4px;padding:0;pointer-events:none;display:flex;flex-direction:column;gap:2px;align-items:flex-start;max-width:calc(100% - 90px);color:#d0d0d0;text-shadow:0 0 3px #000}
+.mt-chartbox .asset{gap:8px}
+.mt-chartbox .asset .name{font:600 12px var(--f-ui);color:#fff}
+.mt-chartbox .asset .px{font:12px var(--f-ui);color:#fff}
+.mt-chartbox .asset .chg{font:12px var(--f-ui)}
+.mt-chartbox .legend{font:11.5px var(--f-ui);color:#b0b0b0;gap:4px 10px}
+.mt-chartbox .legend b{color:#fff}
+.mt-chartbox .pos{color:#6db1ff}.mt-chartbox .neg{color:#ff6b6b}
+.mt-chartbox .fine{max-width:62ch;color:#8e8e8e;font-size:11px;pointer-events:auto}
+.mt-chartbox .draw-hint{position:absolute;z-index:6;left:50%;top:6px;transform:translateX(-50%);margin:0;padding:3px 10px;background:rgba(30,30,30,.92);border:1px solid #555;color:#e8e8e8;font-size:12px;max-width:min(560px,90%);pointer-events:none;text-align:center}
+.mt-chartbox .draw-hint:empty{display:none}
+.mt-chartbox .ind-panel{top:34px;left:8px}
+.mt-ctabs{display:flex;flex:none;background:#f0f0f0;border-top:1px solid #a0a0a0;padding:0 2px}
+.mt-ctab{padding:2px 12px;font-size:12px;color:var(--text);border:1px solid transparent;border-top:0}
+.mt-ctab.on{background:#fff;border-color:#a0a0a0;margin-top:-1px;padding-top:3px}
+
+/* ---- fenêtre d'ordre ---- */
+.mt-order .mt-ob{display:flex;flex-direction:column;gap:8px;padding:8px 10px 0;overflow:auto;font-size:12px}
+.mt-order .field>span,.mt-order .lab{font-size:12px;color:var(--text)}
+.mt-order .field{gap:3px}
+.mt-order input,.mt-order select{padding:4px 6px;font-family:var(--f-ui);font-size:12.5px}
+.mt-order .seg button{padding:4px 8px;font-size:12px}
+.mt-order #t-type{display:flex;width:100%}.mt-order #t-type button{flex:1}
+.mt-order .quick button{border-radius:0;background:#f4f4f4;color:var(--text)}
+.mt-order .est{font-size:12px}
+.mt-order .est .risk{background:#f4f4f4}
+.mt-order .est .risk.over{background:var(--warn-a)}
+.mt-order .sizebox{border-radius:0;border-color:#b5b5b5;font-size:12px}
+.mt-order fieldset.jrn{border-radius:0;border-color:#b5b5b5}
+.mt-order fieldset.jrn legend{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--text)}
+.mt-order #t-side{display:none}
+.mt-order[data-mode="pending"] #t-side{display:flex}
+.mt-order[data-mode="opt"] #f-type{display:none}
+.mt-order[data-mode="market"] #t-go{display:none}
+.is-tuto .mt-order[data-mode="market"] #t-go{display:block}
+.mt-order[data-mode="pending"] #mt-deal,.mt-order[data-mode="opt"] #mt-deal{display:none}
+.mt-order[data-mode="market"] #t-act{display:none}
+.mt-actions{position:sticky;bottom:0;display:flex;flex-direction:column;gap:6px;margin-top:auto;padding:6px 0 8px;background:#fff;border-top:1px solid #e3e3e3}
+.mt-actions .err{padding:0}
+.mt-order .mt-deal{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mt-dbtn{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px 5px;border:1px solid transparent;border-radius:0;color:#fff;cursor:pointer;min-width:0}
+.mt-dbtn.sell{background:#e03232}.mt-dbtn.buy{background:#1c5fd8}
+.mt-dbtn:hover:not(:disabled){filter:brightness(1.1)}
+.mt-dbtn:disabled{background:#9a9a9a;cursor:not-allowed}
+.mt-dl{font-size:12px;font-weight:600}
+.mt-dp{font-size:11.5px;opacity:.9}
+.mt-dp b{font-size:20px;font-weight:600;line-height:1}
+.mt-dc{font-size:10.5px;opacity:.85;text-align:center;line-height:1.25;min-height:2.5em}
+
+/* ---- boîte à outils ---- */
+.mt-toolbox{display:flex;flex-direction:column;height:244px;background:#fff;border-bottom:1px solid #a0a0a0}
+.mt-tb{display:flex;flex-direction:column;flex:1;min-height:0;background:#fff}
+.mt-pane{flex:1;min-height:0;overflow:auto}
+.mt-pane .empty{margin:0;padding:8px 10px;font-size:12px}
+.mt-pane .coach-list,.mt-pane .jlist{padding:8px 10px}
+.mt-pane .olist{padding:0 10px}
+.mt-pane .orow{font-size:12px;padding:5px 0}
+.mt-pane .jc,.mt-pane .cc{background:#fafafa;border-radius:0}
+.mt-acct{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px;padding:3px 8px;border-top:1px solid #a0a0a0;background:#fff;font-size:12px;flex:none}
+.mt-acct>h2{display:none}
+.mt-acct .eq{display:flex;gap:8px;align-items:baseline;flex-wrap:nowrap}
+.mt-acct .eq-val{font:600 12px var(--f-ui)}
+.mt-acct .eq-val::before{content:"Capitaux propres : ";font-weight:400}
+.mt-acct .eq-chg{font:12px var(--f-ui)}
+.mt-acct .spark{display:none}
+.mt-acct .kv{display:contents}
+.mt-acct .kv>div{display:flex;gap:5px;align-items:baseline}
+.mt-acct .kv dt{font-size:12px;color:var(--text)}
+.mt-acct .kv dt::after{content:" :"}
+.mt-acct .kv dd{margin:0;font:600 12px var(--f-ui)}
+.mt-tb .tabs{display:flex;flex:none;margin:0;border:0;border-top:1px solid #a0a0a0;background:#f0f0f0}
+.mt-tb .tabs button{flex:none;padding:3px 14px;border:0;border-right:1px solid #c4c4c4;border-bottom:0;background:none;color:var(--text);font-size:12px;font-weight:400}
+.mt-tb .tabs button.on{background:#fff;color:var(--text);box-shadow:inset 0 2px 0 var(--accent)}
+.mt-tb .badge{background:#dcdcdc;color:#333;font:11px/16px var(--f-ui)}
+
+/* ---- barre d'état ---- */
+.mt-status{display:flex;align-items:center;gap:12px;padding:1px 8px;background:#f0f0f0;font-size:11.5px;color:#222;min-height:22px}
+.mt-status .mt-hint{flex:1 1 0;min-width:0;margin:0;padding:0;min-height:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#222;font-size:11.5px}
+.mt-status .mt-st-m{flex:none;white-space:nowrap}
+.mt-status .ctx{flex:0 1 auto;flex-wrap:nowrap;gap:0;order:0;width:auto;overflow:hidden}
+.mt-status .ctx .tag{border:0;border-left:1px solid #b5b5b5;border-radius:0;background:none;padding:0 8px;font-size:11.5px;white-space:nowrap}
+.mt-status .ctx button.tag{cursor:pointer}
+.mt-st-r{display:inline-flex;align-items:center;gap:6px}
+.mt-signal{display:inline-flex;align-items:flex-end;gap:1px;height:11px}
+.mt-signal i{width:3px;background:#2aa33a}
+.mt-signal i:nth-child(1){height:3px}.mt-signal i:nth-child(2){height:5px}.mt-signal i:nth-child(3){height:7px}.mt-signal i:nth-child(4){height:9px}.mt-signal i:nth-child(5){height:11px}
+.mt-modal{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.35);padding:16px}
+.mt-modal>div{width:min(460px,100%);background:#f0f0f0;border:1px solid #707070;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.mt-modal header{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 4px 10px;background:#fff;border-bottom:1px solid #c0c0c0;font-size:12px;font-weight:600}
+.mt-modal .mb{padding:10px 14px;font-size:12.5px;line-height:1.55}
+.mt-modal .mb p{margin:0 0 8px}
+.mt-modal .mf{display:flex;justify-content:flex-end;padding:8px 10px;border-top:1px solid #d0d0d0;background:#e9e9e9}
+.mt-modal kbd{padding:0 5px;border:1px solid #a0a0a0;border-bottom-width:2px;background:#fff;font:11.5px var(--f-ui)}
+
+/* ---- tutoriel : carte collante en haut, la plateforme défile dessous ---- */
+.game .tuto{position:sticky;top:0;z-index:60;margin:0;border-radius:0;border-width:0 0 2px;box-shadow:0 6px 14px rgba(0,0,0,.18);max-height:min(46vh,420px)}
+
+/* ---- tablette et téléphone : pile verticale, pas de panneau de gauche ---- */
+@media (max-width:960px){
+  .mt-main{display:flex;flex-direction:column;height:auto;background:#fff;gap:0}
+  .mt-left{display:none}
+  .mt-center{flex:none}
+  .mt-chartbox{flex:none;height:clamp(300px,52vh,520px)}
+  .mt-right{border-top:1px solid #a0a0a0}
+  .mt-order .mt-ob{overflow:visible}
+  .mt-toolbox{height:auto;min-height:200px}
+  .mt-pane{max-height:300px}
+  .mt-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .mt-bar::-webkit-scrollbar{display:none}
+  .mt-bar>*{flex:none}
+  .mt-menubar .mt-m{padding:6px 10px}
+  .mt-status{flex-wrap:wrap;padding:3px 8px}
+  .mt-status .mt-hint{flex-basis:100%;white-space:normal}
+  .game .tuto{max-height:44vh}
+}
+@media (max-width:560px){
+  .mt-title{display:none}
+}
+.mt-dbtn.picked{outline:3px solid #111;outline-offset:-3px}
 </style>
 
 <div class="wrap">
@@ -368,6 +610,7 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18M12 6v15M19 2v13" stroke="#566576" stroke-width="1.5" stroke-linecap="round"/><rect x="3" y="8" width="4" height="8" rx="1" fill="#ef5468"/><rect x="10" y="9" width="4" height="8" rx="1" fill="#2dbe8b"/><rect x="17" y="5" width="4" height="7" rx="1" fill="#2dbe8b"/></svg>
       Trading Academy
     </button>
+    <span class="mt-title" id="mt-title" hidden></span>
     <div class="ctx" id="ctx" hidden></div>
     <div class="top-actions" id="top-actions" hidden>
       <button class="btn sm" id="btn-export" type="button">Exporter<span class="hide-sm">&nbsp;la partie</span></button>
@@ -442,46 +685,21 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
     </div>
   </main>
 
-  <!-- ===== Partie ===== -->
+  <!-- ===== Partie : plateforme façon MetaTrader 5 ===== -->
   <main class="game" id="screen-game" hidden>
     <section class="tuto" id="tuto" role="region" aria-label="Tutoriel" aria-live="polite" hidden></section>
-    <div class="col">
-      <div class="mcall" id="mcall" role="alert" hidden></div>
-      <section class="chartbox">
-        <div class="chart-head">
-          <div class="asset"><span class="name">Actif mystère</span><span class="px" id="px">—</span><span class="chg" id="chg"></span></div>
-          <div class="legend" id="legend"></div>
-        </div>
-        <div class="chart-tools" id="inds">
-          <button class="btn sm" type="button" id="ind-open" aria-expanded="false" aria-controls="ind-panel">+ Indicateur</button>
-          <span class="chips" id="ind-chips"></span>
-          <span class="sp"></span>
-          <button class="btn sm" type="button" id="z-out" aria-label="Dézoomer">−</button>
-          <button class="btn sm" type="button" id="z-in" aria-label="Zoomer">+</button>
-          <button class="btn sm" type="button" id="z-reset">Recentrer</button>
-        </div>
-        <div class="draw-tools" id="draw-tools" role="toolbar" aria-label="Outils de dessin">
-          <button class="tool on" type="button" data-tool="cursor" title="Sélection et déplacement">Curseur</button>
-          <button class="tool" type="button" data-tool="h" title="Ligne horizontale : support ou résistance">Support / résistance</button>
-          <button class="tool" type="button" data-tool="t" title="Ligne de tendance en deux clics">Tendance</button>
-          <button class="tool" type="button" data-tool="r" title="Zone de support ou de résistance">Zone</button>
-          <button class="tool sl" type="button" data-tool="sl" title="Poser ton stop-loss sur le graphique">Stop-loss</button>
-          <button class="tool tp" type="button" data-tool="tp" title="Poser ton objectif sur le graphique">Objectif</button>
-          <button class="tool" type="button" data-tool="erase" title="Effacer un tracé">Gomme</button>
-          <span class="sp"></span>
-          <button class="tool" type="button" id="draw-del" hidden>Supprimer la sélection</button>
-          <button class="tool" type="button" id="draw-clear">Tout effacer</button>
-        </div>
-        <p class="draw-hint" id="draw-hint"></p>
-        <div class="ind-panel" id="ind-panel" role="dialog" aria-label="Indicateurs" hidden>
-          <div class="ind-head"><b>Indicateurs</b><button class="btn sm ghost" type="button" id="ind-close">Fermer</button></div>
-          <div id="ind-active"></div>
-          <h3 class="ind-sub">Ajouter un indicateur</h3>
-          <div class="ind-cat" id="ind-catalog"></div>
-        </div>
-        <div class="chart" id="chart"></div>
-      </section>
-      <section class="card timebar" id="timebar">
+
+    <!-- menus (construits par mt5.js) -->
+    <nav class="mt-menubar" id="mt-menubar" aria-label="Menus de la plateforme"></nav>
+
+    <!-- barres d'outils : standard, puis objets graphiques -->
+    <div class="mt-bars">
+      <div class="mt-bar" id="mt-bar-std" role="toolbar" aria-label="Barre d’outils standard">
+        <button class="mt-ib" type="button" id="mt-neworder" title="Nouvel ordre (F9)" aria-pressed="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="#fff" stroke="#5a7da8"/><path d="M8 5v6M5 8h6" stroke="#1e7a3c" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span>Nouvel ordre</span>
+        </button>
+        <span class="mt-sep" aria-hidden="true"></span>
         <button class="btn primary" type="button" id="btn-next">Jour suivant</button>
         <div class="seg" id="tm-mode" role="group" aria-label="Mode de temps">
           <button type="button" data-v="turn">Tour par tour</button>
@@ -494,84 +712,165 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
           </div>
           <label class="chk"><input type="checkbox" id="pause-fill"> Pause à l’exécution d’un ordre</label>
         </div>
-        <div class="grow"><div class="ptxt" id="prog-txt"></div><div class="prog"><i id="prog-bar"></i></div></div>
+        <span class="mt-sep" aria-hidden="true"></span>
+        <div class="chart-tools" id="inds">
+          <button class="btn sm" type="button" id="ind-open" aria-expanded="false" aria-controls="ind-panel">Indicateurs</button>
+          <span class="chips" id="ind-chips"></span>
+          <button class="btn sm" type="button" id="z-out" aria-label="Dézoomer" title="Zoom arrière">−</button>
+          <button class="btn sm" type="button" id="z-in" aria-label="Zoomer" title="Zoom avant">+</button>
+          <button class="btn sm" type="button" id="z-reset" title="Revenir à la dernière barre">Recentrer</button>
+        </div>
+      </div>
+      <div class="mt-bar draw-tools" id="draw-tools" role="toolbar" aria-label="Objets graphiques">
+        <button class="tool on" type="button" data-tool="cursor" title="Sélection et déplacement">Curseur</button>
+        <button class="tool" type="button" data-tool="h" title="Ligne horizontale : support ou résistance">Support / résistance</button>
+        <button class="tool" type="button" data-tool="t" title="Ligne de tendance en deux clics">Tendance</button>
+        <button class="tool" type="button" data-tool="r" title="Zone de support ou de résistance">Zone</button>
+        <button class="tool sl" type="button" data-tool="sl" title="Poser ton stop-loss sur le graphique">Stop-loss</button>
+        <button class="tool tp" type="button" data-tool="tp" title="Poser ton objectif sur le graphique">Objectif</button>
+        <button class="tool" type="button" data-tool="erase" title="Effacer un tracé">Gomme</button>
+        <span class="sp"></span>
+        <button class="tool" type="button" id="draw-del" hidden>Supprimer la sélection</button>
+        <button class="tool" type="button" id="draw-clear">Tout effacer</button>
+        <span class="mt-sep" aria-hidden="true"></span>
+        <div class="mt-prog"><div class="ptxt" id="prog-txt"></div><div class="prog"><i id="prog-bar"></i></div></div>
         <button class="btn ghost" type="button" id="btn-end">Terminer la partie</button>
-      </section>
+      </div>
     </div>
 
-    <aside class="col">
-      <section class="card" id="pf">
-        <h2>Portefeuille</h2>
-        <div class="eq"><div class="eq-val" id="pf-eq"></div><div class="eq-chg" id="pf-chg"></div></div>
-        <svg class="spark" id="pf-spark" viewBox="0 0 300 44" preserveAspectRatio="none" aria-hidden="true"></svg>
-        <dl class="kv">
-          <div><dt>Liquidités</dt><dd id="pf-cash"></dd></div>
-          <div><dt>Valeur des positions</dt><dd id="pf-pos"></dd></div>
-          <div><dt>P&amp;L non réalisé</dt><dd id="pf-unr"></dd></div>
-          <div><dt>P&amp;L réalisé</dt><dd id="pf-real"></dd></div>
-          <div><dt>Drawdown actuel</dt><dd id="pf-dd"></dd></div>
-          <div><dt>Drawdown maximal</dt><dd id="pf-ddmax"></dd></div>
-          <div id="pf-levrow" hidden><dt>Levier utilisé</dt><dd id="pf-lev"></dd></div>
-          <div id="pf-liqrow" hidden><dt>Prix de liquidation</dt><dd id="pf-liq"></dd></div>
-          <div id="pf-optrow" hidden><dt>Options détenues</dt><dd id="pf-opt"></dd></div>
-        </dl>
+    <div class="mcall" id="mcall" role="alert" hidden></div>
+
+    <div class="mt-main" id="mt-main">
+      <!-- panneau de gauche : observation du marché et navigateur -->
+      <aside class="mt-left" id="mt-left" aria-label="Observation du marché et navigateur">
+        <section class="mt-win" id="mt-watch">
+          <header class="mt-wh"><b id="mt-watch-t">Observation du marché</b><button class="mt-x" type="button" data-close="watch" aria-label="Fermer l’observation du marché">×</button></header>
+          <div class="mt-wb">
+            <table class="mt-tbl" id="mt-watch-tbl">
+              <thead><tr><th>Symbole</th><th class="r">Bid</th><th class="r">Ask</th><th class="r">!</th></tr></thead>
+              <tbody id="mt-watch-body"></tbody>
+            </table>
+          </div>
+          <div class="mt-wtabs"><span class="mt-wtab on">Symboles</span><span class="mt-wtab">Détails</span></div>
+        </section>
+        <section class="mt-win" id="mt-nav">
+          <header class="mt-wh"><b>Navigateur</b><button class="mt-x" type="button" data-close="nav" aria-label="Fermer le navigateur">×</button></header>
+          <div class="mt-wb" id="mt-nav-tree"></div>
+        </section>
+      </aside>
+
+      <!-- graphique -->
+      <section class="mt-center" aria-label="Graphique">
+        <div class="chartbox mt-chartbox">
+          <div class="chart-head">
+            <div class="asset"><span class="name">Actif mystère</span><span class="px" id="px">—</span><span class="chg" id="chg"></span></div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="ind-panel" id="ind-panel" role="dialog" aria-label="Indicateurs" hidden>
+            <div class="ind-head"><b>Indicateurs</b><button class="btn sm ghost" type="button" id="ind-close">Fermer</button></div>
+            <div id="ind-active"></div>
+            <h3 class="ind-sub">Ajouter un indicateur</h3>
+            <div class="ind-cat" id="ind-catalog"></div>
+          </div>
+          <div class="chart" id="chart"></div>
+        </div>
+        <div class="mt-ctabs"><span class="mt-ctab on" id="mt-ctab">ACTIF,J1</span></div>
       </section>
 
-      <section class="card ticket" id="ticket">
-        <h2 style="margin:0">Ordre</h2>
-        <div class="seg" id="t-inst" role="group" aria-label="Instrument"><button type="button" data-v="base" class="on">Marché</button><button type="button" data-v="opt" id="inst-opt">Options</button></div>
-        <div id="opt-panel" class="optp" hidden>
-          <div class="seg sides" id="o-kind" role="group" aria-label="Type d’option"><button type="button" class="on buy" data-v="call">Call · hausse</button><button type="button" class="sell" data-v="put">Put · baisse</button></div>
-          <div class="two">
-            <label class="field"><span>Échéance</span><select id="o-exp"></select></label>
-            <label class="field"><span>Prix d’exercice</span><select id="o-strike"></select></label>
+      <!-- fenêtre d'ordre -->
+      <aside class="mt-right" id="mt-right" aria-label="Fenêtre d’ordre">
+        <section class="mt-win ticket mt-order" id="ticket" data-mode="market">
+          <header class="mt-wh"><b>Ordre</b><span class="mt-wsub" id="mt-ord-sym"></span><button class="mt-x" type="button" data-close="order" aria-label="Fermer la fenêtre d’ordre">×</button></header>
+          <div class="mt-wb mt-ob">
+            <div class="seg" id="t-inst" role="group" aria-label="Instrument"><button type="button" data-v="base" class="on">Marché</button><button type="button" data-v="opt" id="inst-opt">Options</button></div>
+            <div id="opt-panel" class="optp" hidden>
+              <div class="seg sides" id="o-kind" role="group" aria-label="Type d’option"><button type="button" class="on buy" data-v="call">Call · hausse</button><button type="button" class="sell" data-v="put">Put · baisse</button></div>
+              <div class="two">
+                <label class="field"><span>Échéance</span><select id="o-exp"></select></label>
+                <label class="field"><span>Prix d’exercice</span><select id="o-strike"></select></label>
+              </div>
+              <label class="field"><span>Contrats (1 contrat = 100 unités)</span><input id="o-qty" inputmode="numeric" value="2" autocomplete="off"></label>
+              <dl class="est" id="o-est"></dl>
+              <p class="hint">Tu achètes une option : ta perte maximale est la prime payée. Règlement en espèces à l’échéance.</p>
+            </div>
+            <div class="field" id="f-type"><span>Type</span>
+              <div class="seg" id="t-type" role="group" aria-label="Type d’ordre">
+                <button type="button" class="on" data-v="market">Au marché</button><button type="button" data-v="limit">Limite</button><button type="button" data-v="stop">Stop</button>
+              </div>
+            </div>
+            <div class="seg sides" id="t-side" role="group" aria-label="Sens"><button type="button" class="on buy" data-v="buy">Acheter</button><button type="button" class="sell" data-v="sell">Vendre</button></div>
+            <label class="field" id="f-price" hidden><span id="f-price-l">Prix</span><input id="t-price" inputmode="decimal" autocomplete="off"></label>
+            <label class="field" id="f-qty"><span id="qty-l">Volume (actions)</span><input id="t-qty" inputmode="numeric" autocomplete="off"></label>
+            <div class="quick" id="t-quick"><button type="button" data-p="0.25">25 %</button><button type="button" data-p="0.5">50 %</button><button type="button" data-p="0.75">75 %</button><button type="button" data-p="1">Max</button></div>
+            <div class="two" id="f-exits">
+              <label class="field"><span id="sl-l">Stop-loss</span><input id="t-sl" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
+              <label class="field"><span>Objectif</span><input id="t-tp" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
+            </div>
+            <div class="sizebox" id="t-size">
+              <label class="sz-in">Risquer <input id="t-risk" inputmode="decimal" aria-label="Risque voulu en pourcentage du compte" autocomplete="off"> % du compte</label>
+              <div class="sz-out"><span id="sz-txt"></span><button class="btn sm" type="button" id="sz-use">Utiliser</button></div>
+            </div>
+            <fieldset class="jrn" id="f-journal">
+              <legend id="j-legend">Journal de l’ordre</legend>
+              <div class="two">
+                <label class="field"><span>Raison d’entrée</span><select id="j-reason"></select></label>
+                <label class="field"><span>Émotion</span><select id="j-emo"></select></label>
+              </div>
+              <label class="field"><span>Commentaire (facultatif)</span><input id="j-note" maxlength="160" placeholder="Ce que tu vois, ton plan…" autocomplete="off"></label>
+            </fieldset>
+            <dl class="est" id="t-est"></dl>
+            <p class="hint" id="t-act"></p>
+            <div class="mt-actions">
+            <p class="err" id="t-err" role="alert"></p>
+            <div class="mt-deal" id="mt-deal">
+              <button type="button" class="mt-dbtn sell" id="mt-sell"><span class="mt-dl">Vendre au marché</span><span class="mt-dp" id="mt-bid">—</span><span class="mt-dc" id="mt-sell-c"></span></button>
+              <button type="button" class="mt-dbtn buy" id="mt-buy"><span class="mt-dl">Acheter au marché</span><span class="mt-dp" id="mt-ask">—</span><span class="mt-dc" id="mt-buy-c"></span></button>
+            </div>
+            <button class="btn buy big" type="button" id="t-go">Acheter au marché</button>
+            </div>
           </div>
-          <label class="field"><span>Contrats (1 contrat = 100 unités)</span><input id="o-qty" inputmode="numeric" value="2" autocomplete="off"></label>
-          <dl class="est" id="o-est"></dl>
-          <p class="hint">Tu achètes une option : ta perte maximale est la prime payée. Règlement en espèces à l’échéance.</p>
-        </div>
-        <div class="seg sides" id="t-side" role="group" aria-label="Sens"><button type="button" class="on buy" data-v="buy">Acheter</button><button type="button" class="sell" data-v="sell">Vendre</button></div>
-        <p class="hint" id="t-act"></p>
-        <div class="seg" id="t-type" role="group" aria-label="Type d’ordre">
-          <button type="button" class="on" data-v="market">Marché</button><button type="button" data-v="limit">Limite</button><button type="button" data-v="stop">Stop</button>
-        </div>
-        <label class="field" id="f-price" hidden><span id="f-price-l">Prix</span><input id="t-price" inputmode="decimal" autocomplete="off"></label>
-        <label class="field" id="f-qty"><span id="qty-l">Quantité (actions)</span><input id="t-qty" inputmode="numeric" autocomplete="off"></label>
-        <div class="quick" id="t-quick"><button type="button" data-p="0.25">25 %</button><button type="button" data-p="0.5">50 %</button><button type="button" data-p="0.75">75 %</button><button type="button" data-p="1">Max</button></div>
-        <div class="two" id="f-exits">
-          <label class="field"><span id="sl-l">Stop-loss</span><input id="t-sl" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
-          <label class="field"><span>Objectif</span><input id="t-tp" inputmode="decimal" placeholder="Facultatif" autocomplete="off"></label>
-        </div>
-        <div class="sizebox" id="t-size">
-          <label class="sz-in">Risquer <input id="t-risk" inputmode="decimal" aria-label="Risque voulu en pourcentage du compte" autocomplete="off"> % du compte</label>
-          <div class="sz-out"><span id="sz-txt"></span><button class="btn sm" type="button" id="sz-use">Utiliser</button></div>
-        </div>
-        <fieldset class="jrn" id="f-journal">
-          <legend id="j-legend">Journal de l’ordre</legend>
-          <div class="two">
-            <label class="field"><span>Raison d’entrée</span><select id="j-reason"></select></label>
-            <label class="field"><span>Émotion</span><select id="j-emo"></select></label>
-          </div>
-          <label class="field"><span>Note (facultatif)</span><input id="j-note" maxlength="160" placeholder="Ce que tu vois, ton plan…" autocomplete="off"></label>
-        </fieldset>
-        <dl class="est" id="t-est"></dl>
-        <p class="err" id="t-err" role="alert"></p>
-        <button class="btn buy big" type="button" id="t-go">Acheter au marché</button>
-      </section>
+        </section>
+      </aside>
+    </div>
 
-      <section class="card" id="tabs">
+    <!-- boîte à outils : trading, ordres, historique, coach, puis compte -->
+    <section class="mt-toolbox" id="mt-toolbox" aria-label="Boîte à outils">
+      <header class="mt-wh"><b>Boîte à outils</b><button class="mt-x" type="button" data-close="tool" aria-label="Fermer la boîte à outils">×</button></header>
+      <div class="mt-tb" id="tabs">
+        <div class="mt-pane" id="tab-pos"><div id="pos-main"></div><div id="pos-opts"></div></div>
+        <div class="mt-pane" id="tab-ord" hidden></div>
+        <div class="mt-pane" id="tab-hist" hidden></div>
+        <div class="mt-pane" id="tab-coach" hidden></div>
+        <section class="mt-acct" id="pf" aria-label="Compte">
+          <h2>Compte</h2>
+          <div class="eq"><div class="eq-val" id="pf-eq"></div><div class="eq-chg" id="pf-chg"></div></div>
+          <svg class="spark" id="pf-spark" viewBox="0 0 300 44" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <dl class="kv">
+            <div><dt>Liquidités</dt><dd id="pf-cash"></dd></div>
+            <div><dt>Valeur des positions</dt><dd id="pf-pos"></dd></div>
+            <div><dt>P&amp;L non réalisé</dt><dd id="pf-unr"></dd></div>
+            <div><dt>P&amp;L réalisé</dt><dd id="pf-real"></dd></div>
+            <div><dt>Drawdown actuel</dt><dd id="pf-dd"></dd></div>
+            <div><dt>Drawdown maximal</dt><dd id="pf-ddmax"></dd></div>
+            <div id="pf-levrow" hidden><dt>Levier utilisé</dt><dd id="pf-lev"></dd></div>
+            <div id="pf-liqrow" hidden><dt>Prix de liquidation</dt><dd id="pf-liq"></dd></div>
+            <div id="pf-optrow" hidden><dt>Options détenues</dt><dd id="pf-opt"></dd></div>
+          </dl>
+        </section>
         <div class="tabs" role="tablist">
-          <button type="button" role="tab" class="on" data-t="pos">Position</button>
+          <button type="button" role="tab" class="on" data-t="pos">Trading</button>
           <button type="button" role="tab" data-t="ord">Ordres<span class="badge" id="b-ord">0</span></button>
-          <button type="button" role="tab" data-t="hist">Journal<span class="badge" id="b-hist">0</span></button>
+          <button type="button" role="tab" data-t="hist">Historique<span class="badge" id="b-hist">0</span></button>
           <button type="button" role="tab" data-t="coach">Coach<span class="badge" id="b-coach">0</span></button>
         </div>
-        <div id="tab-pos"><div id="pos-main"></div><div id="pos-opts"></div></div>
-        <div id="tab-ord" hidden></div>
-        <div id="tab-hist" hidden></div>
-        <div id="tab-coach" hidden></div>
-      </section>
-    </aside>
+      </div>
+    </section>
+
+    <footer class="mt-status" id="mt-status">
+      <p class="draw-hint mt-hint" id="draw-hint"></p>
+      <span class="mt-st-m" id="mt-st-l"></span>
+      <span class="mt-st-r"><span class="mt-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span id="mt-st-r">Connecté</span></span>
+    </footer>
   </main>
 
   <!-- ===== Fin de partie ===== -->
@@ -607,4 +906,5 @@ fieldset.jrn legend{padding:0 6px;font-size:11px;font-weight:600;letter-spacing:
 <script src="js/coach.js"></script>
 <script src="js/board.js"></script>
 <script src="js/tutorial.js"></script>
+<script src="js/mt5.js"></script>
 <script src="js/app.js"></script>

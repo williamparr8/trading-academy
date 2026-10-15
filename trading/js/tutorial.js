@@ -39,7 +39,7 @@
     },
     {
       id: 'buy', title: '4. Passe l’ordre', target: ['#t-go'],
-      text: (c) => (c.side !== 'buy' ? 'Choisis <b>Acheter</b> en haut du ticket : tu gagnes si le prix monte.'
+      text: (c) => (c.side !== 'buy' ? 'Choisis <b>Acheter</b> (bouton bleu de la fenêtre d’ordre) : tu gagnes si le prix monte.'
         : c.type !== 'market' ? 'Choisis le type <b>Marché</b> : l’ordre s’exécute tout de suite, au prix du moment.'
           : 'Tout est prêt. Clique <b>Acheter au marché</b> : l’ordre s’exécute au prix du moment, avec un petit écart (le spread) et une commission, comme en vrai.'),
       when: (c) => c.hasPos,
@@ -56,7 +56,7 @@
     },
     {
       id: 'close', title: '6. Ferme ta position', target: ['#p-close'], tab: 'pos',
-      text: () => 'Clique <b>Clôturer la position</b> dans l’onglet Position. Dans une vraie partie, ton stop ou un objectif peuvent aussi le faire à ta place.',
+      text: () => 'Clique la croix <b>×</b> à droite de ta position, dans l’onglet <b>Trading</b> de la boîte à outils. Dans une vraie partie, ton stop ou un objectif peuvent aussi le faire à ta place.',
       when: (c) => !c.hasPos,
       ok: 'Position fermée : le résultat est maintenant réalisé.',
     },
@@ -85,8 +85,8 @@
       text: () => 'Un achat ne peut pas perdre plus que sa mise : un prix tombe au pire à zéro. Une vente à découvert peut perdre davantage, parce qu’un prix peut monter sans limite. C’est pourquoi le <b>stop-loss</b> est encore plus important ici : il se place <b>au-dessus</b> du prix. Tu paies aussi des frais d’emprunt (2 % par an sur les actions), prélevés à chaque barre.',
     },
     {
-      id: 'side', title: '1. Choisis « Vendre »', target: ['#t-side'],
-      text: () => 'En haut du ticket, clique <b>Vendre</b>. Le texte sous les boutons confirme que tu ouvres une vente à découvert : un pari à la baisse.',
+      id: 'side', title: '1. Choisis « Vendre »', target: ['#t-side', '#mt-sell'],
+      text: () => 'Dans la fenêtre d’ordre, clique le bouton rouge <b>Vendre</b>. Le texte sous le bouton confirme que tu ouvres une vente à découvert : un pari à la baisse.',
       when: (c) => c.side === 'sell' && !c.hasPos,
       ok: 'Tu parieras à la baisse.',
     },
@@ -110,7 +110,7 @@
     },
     {
       id: 'go', title: '5. Vends à découvert', target: ['#t-go'],
-      text: (c) => (c.side !== 'sell' ? 'Choisis <b>Vendre</b> en haut du ticket.' : 'Clique <b>Vendre à découvert au marché</b> : l’ordre s’exécute au prix du moment, avec le spread et la commission.'),
+      text: (c) => (c.side !== 'sell' ? 'Choisis <b>Vendre</b> (bouton rouge de la fenêtre d’ordre).' : 'Clique <b>Vendre à découvert au marché</b> : l’ordre s’exécute au prix du moment, avec le spread et la commission.'),
       when: (c) => c.posDir === -1,
       ok: 'Position à découvert ouverte.',
     },
@@ -121,7 +121,7 @@
     },
     {
       id: 'close', title: '7. Couvre ta position', target: ['#p-close'], tab: 'pos',
-      text: () => 'Pour fermer une vente à découvert, tu <b>rachètes</b> l’action : on dit « couvrir ». Clique <b>Clôturer la position</b>.',
+      text: () => 'Pour fermer une vente à découvert, tu <b>rachètes</b> l’action : on dit « couvrir ». Clique la croix <b>×</b> à droite de ta position (onglet <b>Trading</b>, en bas).',
       when: (c) => !c.hasPos,
       ok: 'Position couverte.',
     },

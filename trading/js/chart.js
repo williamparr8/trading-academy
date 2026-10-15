@@ -37,10 +37,12 @@
       this.tool = 'cursor'; this.sel = null; this.pending = null; this.hover = null; this.drag = null; this.dragDraw = null;
       this.ticket = { sl: null, tp: null };
       const C = (this.C = {
-        panel: css('--panel'), muted: css('--muted'), grid: css('--grid'), line: css('--line-2'),
-        up: css('--up'), down: css('--down'), upA: css('--up-a'), downA: css('--down-a'),
-        accent: css('--accent'), warn: css('--warn'), violet: css('--violet'), cyan: css('--cyan'), warnA: css('--warn-a'), text: css('--text'),
-        mono: css('--f-mono'),
+        panel: css('--ch-bg') || css('--panel'), muted: css('--ch-text') || css('--muted'), grid: css('--ch-grid') || css('--grid'), line: css('--ch-axis') || css('--line-2'),
+        up: css('--ch-up') || css('--up'), down: css('--ch-down') || css('--down'), upA: css('--ch-up-a') || css('--up-a'), downA: css('--ch-down-a') || css('--down-a'),
+        buy: css('--ch-buy') || css('--up'), sell: css('--ch-sell') || css('--down'),
+        accent: css('--ch-accent') || css('--accent'), warn: css('--ch-warn') || css('--warn'), violet: css('--ch-violet') || css('--violet'), cyan: css('--ch-cyan') || css('--cyan'),
+        warnA: css('--ch-warn-a') || css('--warn-a'), text: css('--ch-text') || css('--text'),
+        mono: css('--f-ui') || css('--f-mono'),
       });
       this.pal = [C.warn, C.accent, C.violet, C.cyan, '#e879a6', '#a3b3c4'];
       const nf = (this.nf = new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
@@ -48,10 +50,14 @@
         autoSize: true,
         layout: {
           background: { type: LW.ColorType.Solid, color: C.panel }, textColor: C.muted,
-          fontFamily: C.mono, fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: C.grid },
+          fontFamily: C.mono, fontSize: 12, panes: { separatorColor: C.line, separatorHoverColor: C.grid },
         },
-        grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
-        crosshair: { mode: LW.CrosshairMode.Normal },
+        grid: { vertLines: { color: C.grid, style: LW.LineStyle.Dotted }, horzLines: { color: C.grid, style: LW.LineStyle.Dotted } },
+        crosshair: {
+          mode: LW.CrosshairMode.Normal,
+          vertLine: { color: '#9a9a9a', style: LW.LineStyle.Dashed, labelBackgroundColor: '#3a3a3a' },
+          horzLine: { color: '#9a9a9a', style: LW.LineStyle.Dashed, labelBackgroundColor: '#3a3a3a' },
+        },
         rightPriceScale: { borderColor: C.line },
         timeScale: {
           borderColor: C.line, rightOffset: 8, timeVisible: false, secondsVisible: false,
@@ -61,6 +67,7 @@
       });
       this.candle = this.chart.addSeries(LW.CandlestickSeries, {
         upColor: C.up, downColor: C.down, wickUpColor: C.up, wickDownColor: C.down, borderVisible: false,
+        priceLineColor: C.buy, priceLineStyle: LW.LineStyle.Dotted, priceLineWidth: 1,
         priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
       });
       this.vol = this.chart.addSeries(LW.HistogramSeries, {
@@ -127,7 +134,7 @@
       this.markers.setMarkers(
         st.fills.filter((f) => f.idx >= this.i0).map((f) => ({
           time: tm(f.idx), position: f.side === 'buy' ? 'belowBar' : 'aboveBar', shape: f.side === 'buy' ? 'arrowUp' : 'arrowDown',
-          color: f.side === 'buy' ? C.up : C.down, text: (f.side === 'buy' ? 'A ' : 'V ') + f.qty,
+          color: f.side === 'buy' ? C.buy : C.sell, text: (f.side === 'buy' ? 'buy ' : 'sell ') + f.qty,
         }))
       );
       this.layer.update();
@@ -149,16 +156,16 @@
         this.lines.push({ line, kind: kind || null, src: src || null, price });
       };
       if (st.pos) {
-        add(st.pos.avg, C.accent, 'Entrée', LS.Dotted);
-        if (st.pos.sl != null) add(st.pos.sl, C.down, 'Stop', LS.Dashed, 'sl', 'pos');
-        if (st.pos.tp != null) add(st.pos.tp, C.up, 'Objectif', LS.Dashed, 'tp', 'pos');
+        add(st.pos.avg, st.pos.dir === 1 ? C.buy : C.sell, (st.pos.dir === 1 ? 'buy ' : 'sell ') + st.pos.qty, LS.Dotted);
+        if (st.pos.sl != null) add(st.pos.sl, C.sell, 'S/L', LS.Dashed, 'sl', 'pos');
+        if (st.pos.tp != null) add(st.pos.tp, C.up, 'T/P', LS.Dashed, 'tp', 'pos');
         const lp = TA.liqPrice(this.g, st);   // positions à levier ou vendues à découvert : prix où la plateforme liquide
         if (lp != null) add(lp, C.down, 'Liquidation', LS.SparseDotted);
       } else {
-        if (this.ticket.sl != null) add(this.ticket.sl, C.down, 'Stop (ordre)', LS.Dashed, 'sl', 'ticket');
-        if (this.ticket.tp != null) add(this.ticket.tp, C.up, 'Objectif (ordre)', LS.Dashed, 'tp', 'ticket');
+        if (this.ticket.sl != null) add(this.ticket.sl, C.sell, 'S/L (ordre)', LS.Dashed, 'sl', 'ticket');
+        if (this.ticket.tp != null) add(this.ticket.tp, C.up, 'T/P (ordre)', LS.Dashed, 'tp', 'ticket');
       }
-      for (const o of st.orders) add(o.price, C.warn, (o.side === 'buy' ? 'Achat ' : 'Vente ') + (o.type === 'limit' ? 'limite' : 'stop'), LS.Dashed);
+      for (const o of st.orders) add(o.price, o.side === 'buy' ? C.buy : C.sell, (o.side === 'buy' ? 'buy ' : 'sell ') + (o.type === 'limit' ? 'limit ' : 'stop ') + o.qty, LS.Dashed);
     }
 
     /* --- zoom --- */
@@ -234,7 +241,7 @@
         }
       }
       this.vol.applyOptions({ visible: vol });
-      this.candle.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: vol ? 0.2 : 0.06 } });
+      this.candle.priceScale().applyOptions({ scaleMargins: { top: 0.12, bottom: vol ? 0.2 : 0.06 } });
       // les volets vides disparaissent ; les proportions suivent les volets actifs
       while (ch.panes().length > pane) ch.removePane(ch.panes().length - 1);
       ch.panes().forEach((p, k) => p.setStretchFactor(k === 0 ? 3.2 : 1));

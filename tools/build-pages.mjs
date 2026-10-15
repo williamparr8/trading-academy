@@ -18,8 +18,8 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 ${title}
 <meta name="description" content="Simulateur de trading en français : entraîne-toi sur de vrais marchés historiques, actif et date cachés, sans risquer un sou.">
-<meta name="theme-color" content="#080c11">
-<style>:root{color-scheme:dark;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}html{background:#080c11}[hidden]{display:none!important}</style>
+<meta name="theme-color" content="#f0f0f0">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}html{background:#f0f0f0}[hidden]{display:none!important}</style>
 </head>
 <body>
 ${body}

@@ -39,7 +39,7 @@
     sma: [['n', 'Période', 2, 300, 1]], ema: [['n', 'Période', 2, 300, 1]], boll: [['n', 'Période', 5, 100, 1], ['k', 'Écart', 0.5, 4, 0.5]],
     rsi: [['n', 'Période', 2, 50, 1]], macd: [['f', 'Rapide', 2, 100, 1], ['s', 'Lente', 3, 200, 1], ['g', 'Signal', 2, 50, 1]], atr: [['n', 'Période', 2, 50, 1]],
   };
-  const IND_COLORS = ['var(--warn)', 'var(--accent)', 'var(--violet)', 'var(--cyan)', '#e879a6', '#a3b3c4'];
+  const IND_COLORS = ['var(--ch-warn)', 'var(--ch-accent)', 'var(--ch-violet)', 'var(--ch-cyan)', '#e879a6', '#a3b3c4'];
   function legacyInds(ind) {   // anciennes préférences : une case à cocher par indicateur
     const k = { ...PREFS0.ind, ...(ind || {}) }, out = [];
     if (k.vol) out.push({ t: 'vol' });
@@ -126,6 +126,7 @@
     if (name !== 'board') closeBoard();
     $('#ctx').hidden = name !== 'game';
     $('#minibar').hidden = name !== 'game';
+    document.body.classList.toggle('in-game', name === 'game');
     window.scrollTo(0, 0);
   }
 
@@ -403,6 +404,7 @@
     const lead = App.tuto ? '<span class="tag">Tutoriel</span><span class="tag">Actions</span>' : isLive() ? `<span class="tag">Live</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">Cotes au ${shortDay(g.t[i])}</span>` : `<span class="tag">Entraînement</span><span class="tag">${esc(TA.MARKETS[g.market].name)}</span><span class="tag">${esc(u.name)}</span><span class="tag">${esc(sc ? sc.name : '')}</span>`;
     $('#ctx').innerHTML = `${lead}<span class="tag">${rtag}</span>${st.maxLev > 1 ? `<span class="tag">Levier ×${st.maxLev}</span>` : ''}<span class="tag">Niveau ${esc(TA.LEVELS[(st.level || 1) - 1].name)}</span>${App.tuto ? '' : `<button class="tag mono" type="button" id="copy-code" title="Copier le code de défi">${isLive() ? esc(App.cfg.code) : 'Défi ' + esc(App.cfg.challenge || App.cfg.code)}</button>`}`;
     updateTicket(); renderPos(); renderOpts(); renderOrders(); renderJournal(); renderCoach(); applyLiveChrome();
+    if (TA.MT5) TA.MT5.sync(App);
   }
 
   function updateLegend(hi) {
@@ -488,6 +490,7 @@
       $('#f-journal').hidden = false;
       go.className = 'btn big buy'; go.textContent = 'Acheter l’option';
     }
+    if (TA.MT5) TA.MT5.onTicket(App);
   }
   function refreshTicketChrome() {
     if (!App.st) return;
@@ -596,20 +599,23 @@
     const key = p ? [p.dir, p.qty, p.avg.toFixed(5), p.sl, p.tp].join('|') : 'none';
     if (key !== App.posKey) {
       App.posKey = key;
+      const mk = TA.MARKETS[App.g.market], sym = App.g.live ? App.g.meta.s : 'ACTIF';
+      const head = '<thead><tr><th>Symbole</th><th>Ticket</th><th>Heure</th><th>Type</th><th class="r">Volume</th><th class="r">Prix</th><th class="r">S/L</th><th class="r">T/P</th><th class="r">Prix actuel</th><th class="r">Profit</th><th></th></tr></thead>';
       if (!p) {
-        box.innerHTML = '<p class="empty">Aucune position ouverte. Place un ordre pour commencer : un achat ouvre une position longue, une vente à découvert (un pari contre le marché) gagne quand le prix baisse.</p>';
+        box.innerHTML = `<div class="scroll-x"><table class="mt-tbl">${head}<tbody><tr class="mt-add"><td colspan="11">Aucune position ouverte. Un achat (buy) ouvre une position longue ; une vente à découvert (sell) gagne quand le prix baisse.</td></tr></tbody></table></div>`;
       } else {
-        const mk = TA.MARKETS[App.g.market];
-        box.innerHTML = `<div class="pos-box">
-          <div class="pos-head"><span class="tag ${p.dir === 1 ? 'long' : 'short'}">${p.dir === 1 ? 'Long' : 'Short'}</span><span class="mono">${F.int(p.qty)} ${p.qty === 1 ? mk.one : mk.many}</span></div>
-          <dl class="kv"><div><dt>Prix moyen</dt><dd>${F.money(p.avg)}</dd></div><div><dt>Dernier prix</dt><dd id="p-last"></dd></div>
-            <div><dt>Valeur</dt><dd id="p-val"></dd></div><div><dt>P&amp;L non réalisé</dt><dd id="p-pnl"></dd></div></dl>
-          <div class="two"><label class="field"><span>Stop-loss</span><input id="p-sl" inputmode="decimal" value="${inp(p.sl)}" placeholder="Aucun" autocomplete="off"></label>
-            <label class="field"><span>Objectif</span><input id="p-tp" inputmode="decimal" value="${inp(p.tp)}" placeholder="Aucun" autocomplete="off"></label></div>
-          ${p.dir === -1 ? `<p class="hint">Vente à découvert : ton stop se place au-dessus du prix, ton objectif en dessous.${mk.borrow ? ` Frais d’emprunt : ${F.pct(mk.borrow).replace(',00', '')} par an, prélevés à chaque barre et inclus dans les frais de la transaction.` : ''}</p>` : ''}
-          ${st.rules.mode === 'block' ? '<p class="hint">Règle obligatoire : tu peux rapprocher ton stop, pas l’éloigner ni le retirer.</p>' : ''}
-          <div class="acts"><button class="btn" type="button" id="p-apply">Appliquer</button><button class="btn sell" type="button" id="p-close">Clôturer la position</button></div>
-          <p class="err" id="p-err" role="alert"></p></div>`;
+        const first = p.entries && p.entries[0], tk = 310000 + (((first ? first.idx : 0) * 13) + st.trades.length * 7) % 90000;
+        box.innerHTML = `<div class="scroll-x"><table class="mt-tbl">${head}<tbody><tr>
+          <td>${esc(sym)}</td><td>${tk}</td><td>${first ? rel(first.idx) : '—'}</td><td class="${p.dir === 1 ? 'buy' : 'sell'}">${p.dir === 1 ? 'buy' : 'sell'}</td>
+          <td class="r">${F.int(p.qty)} <span class="dim">${p.qty === 1 ? mk.one : mk.many}</span></td><td class="r">${n2(p.avg)}</td>
+          <td class="r"><input id="p-sl" inputmode="decimal" value="${inp(p.sl)}" placeholder="Aucun" aria-label="Stop-loss" autocomplete="off"></td>
+          <td class="r"><input id="p-tp" inputmode="decimal" value="${inp(p.tp)}" placeholder="Aucun" aria-label="Objectif" autocomplete="off"></td>
+          <td class="r" id="p-last"></td><td class="r" id="p-pnl"></td>
+          <td><button class="mb" type="button" id="p-apply">Modifier</button> <button class="xb" type="button" id="p-close" title="Clôturer la position" aria-label="Clôturer la position">×</button></td>
+        </tr></tbody></table></div>
+        ${p.dir === -1 ? `<p class="mt-note">Vente à découvert : ton stop se place au-dessus du prix, ton objectif en dessous.${mk.borrow ? ` Frais d’emprunt : ${F.pct(mk.borrow).replace(',00', '')} par an, prélevés à chaque barre et inclus dans les frais de la transaction.` : ''}</p>` : ''}
+        ${st.rules.mode === 'block' ? '<p class="mt-note">Règle obligatoire : tu peux rapprocher ton stop, pas l’éloigner ni le retirer.</p>' : ''}
+        <p class="err mt-note" id="p-err" role="alert"></p>`;
         $('#p-apply').onclick = () => {
           const sl = parseNum($('#p-sl').value), tp = parseNum($('#p-tp').value);
           if (Number.isNaN(sl) || Number.isNaN(tp)) { $('#p-err').textContent = 'Un des prix saisis n’est pas un nombre valide.'; return; }
@@ -626,14 +632,16 @@
     }
     if (p) {
       const c = App.g.c[st.idx], pnl = p.dir * p.qty * (c - p.avg) - p.fees;
-      $('#p-last').textContent = F.money(c); $('#p-val').textContent = F.money(p.dir * p.qty * c);
-      $('#p-pnl').textContent = `${F.smoney(pnl)} · ${F.spct(pnl / (p.qty * p.avg))}`; $('#p-pnl').className = cls(pnl);
+      $('#p-last').textContent = n2(c);
+      const pe = $('#p-pnl'); pe.textContent = F.smoney(pnl); pe.className = 'r ' + cls(pnl); pe.title = F.spct(pnl / (p.qty * p.avg));
     }
   }
   function renderOrders() {
     const os = App.st.orders; $('#b-ord').textContent = os.length;
+    const sym = App.g.live ? App.g.meta.s : 'ACTIF';
     $('#tab-ord').innerHTML = os.length
-      ? '<div class="olist">' + os.map((o) => `<div class="orow"><span>${o.side === 'buy' ? 'Achat' : 'Vente'} ${o.type === 'limit' ? 'limite' : 'stop'}${o.intent === 'close' ? ' (fermeture)' : ''} ·<span class="mono">${F.int(o.qty)} @ ${F.money(o.price)}</span>${o.sl ? ` <span class="dim mono">SL ${n2(o.sl)}</span>` : ''}${o.tp ? ` <span class="dim mono">OBJ ${n2(o.tp)}</span>` : ''}</span><button class="btn sm ghost" type="button" data-cancel="${o.id}">Annuler</button></div>`).join('') + '</div>'
+      ? '<div class="scroll-x"><table class="mt-tbl"><thead><tr><th>Symbole</th><th>Ordre</th><th>Type</th><th class="r">Volume</th><th class="r">Prix</th><th class="r">S/L</th><th class="r">T/P</th><th>État</th><th></th></tr></thead><tbody>' +
+        os.map((o) => `<tr><td>${esc(sym)}</td><td>${o.id}</td><td class="${o.side === 'buy' ? 'buy' : 'sell'}">${o.side} ${o.type}${o.intent === 'close' ? ' (fermeture)' : ''}</td><td class="r">${F.int(o.qty)}</td><td class="r">${n2(o.price)}</td><td class="r">${o.sl ? n2(o.sl) : '—'}</td><td class="r">${o.tp ? n2(o.tp) : '—'}</td><td>placé</td><td><button class="xb" type="button" data-cancel="${o.id}" title="Annuler l’ordre" aria-label="Annuler l’ordre">×</button></td></tr>`).join('') + '</tbody></table></div>'
       : '<p class="empty">Aucun ordre en attente. Les ordres limite et stop apparaissent ici jusqu’à leur exécution.</p>';
   }
   /* ---------- journal de trades : généré à partir des ordres, complété par tes notes ---------- */
