@@ -122,12 +122,12 @@
   App.show = (n) => show(n);   // pour l’écran du gestionnaire de portefeuille (pmui.js)
   function show(name) {
     App.screen = name;
-    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm']) $('#screen-' + s).hidden = s !== name;
-    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm';
+    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm', 'fund', 'flash']) $('#screen-' + s).hidden = s !== name;
+    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm' || name === 'fund' || name === 'flash';
     if (name !== 'board') closeBoard();
     $('#ctx').hidden = name !== 'game';
     $('#minibar').hidden = name !== 'game';
-    document.body.classList.toggle('in-game', name === 'game' || name === 'pm');
+    document.body.classList.toggle('in-game', name === 'game' || name === 'pm' || name === 'fund' || name === 'flash');
     window.scrollTo(0, 0);
   }
 

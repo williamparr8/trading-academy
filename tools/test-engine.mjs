@@ -1171,5 +1171,7 @@ function synth(bars) {
 }
 
 await import('./test-pm.mjs');   // gestionnaire de portefeuille
+await import('./test-fund.mjs');   // saison des résultats
+await import('./test-flash.mjs');   // flash technique
 console.log(`\n${n} groupes de tests reussis`);
 console.log(TA.fmt.money(1234.5), '|', TA.fmt.smoney(-12.3), '|', TA.fmt.spct(0.0321), '|', TA.fmt.date(TA.dayFromISO('2008-09-15')));
