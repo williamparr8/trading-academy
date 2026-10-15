@@ -43,7 +43,7 @@
 
   /* ---------- génération d'une partie (tout est déterminé par le code) ---------- */
   FD.newGame = function (seed, opts = {}) {
-    const Q = opts.quarters || 8, T = H + Q, rnd = mulberry(hash('FD|' + seed));
+    const Q = opts.quarters || 8, T = H + Q, rnd = mulberry(hash('FD|' + seed)), nz = opts.noise || 1;
     // macroéconomie : taux directeur, croissance, rendement trimestriel du marché
     const macro = [];
     let rate = 0.025 + rnd() * 0.02, growth = 0.02, regime = 0;
@@ -138,7 +138,7 @@
         const mc = macro[k], fvPrev = k === 0 ? fvAt(0, mc.prevRate) : fvAt(k - 1, mc.rate);
         for (let m = 0; m < 3; m++) {
           const hype = c.isAgg && k < c.blowQ ? 0.003 : 0;
-          const r = sec.beta * mktM[mi] + gauss(rnd) * 0.032 * sec.vol + (0.3 / 12) * Math.log(fvPrev / P) - monthlyDur(c) * ((mc.rate - mc.prevRate) / 3) * 0.6 + hype;
+          const r = sec.beta * mktM[mi] + gauss(rnd) * 0.032 * sec.vol * nz + (0.3 / 12) * Math.log(fvPrev / P) - monthlyDur(c) * ((mc.rate - mc.prevRate) / 3) * 0.6 + hype;
           P *= Math.exp(clamp(r, -0.35, 0.35));
           mi++;
           if (m === 0) px.m1.push(P); else if (m === 1) px.m2.push(P);

@@ -20,6 +20,16 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   observation du marché (Bid / Ask), navigateur d'indicateurs (double-clic), graphique noir, fenêtre d'ordre à deux boutons
   Vendre (rouge, au Bid) et Acheter (bleu, à l'Ask), boîte à outils (Trading, Ordres, Historique, Coach) et barre d'état.
   Présentation inspirée de MetaTrader 5 ; les données et le compte restent virtuels.
+- **Gestionnaire de portefeuille** : quatre mandats de clients (retraitée, jeune professionnel, fondation, régime de retraite)
+  avec énoncé de politique, indice de politique, contraintes vérifiées chaque mois, événements, questions de déontologie,
+  risque et corrélations ; rapport façon CFA (Sharpe, Sortino, information, alpha, capture, VaR, attribution) et lettre au client.
+- **Saison des résultats** (analyse fondamentale) : huit sociétés fictives, états financiers, consensus, prédictions, comparateur,
+  valeur par flux actualisés, signaux de comptabilité agressive, dividendes, prédiction du taux directeur.
+- **Flash technique** (15 décisions sur de vrais graphiques cachés, résultat en R, statistiques par contexte) et **Chasse aux figures**
+  (reconnaître double sommet, épaule-tête-épaule, triangles, drapeaux).
+- **Formation** : 17 leçons avec quiz (dont états financiers, valorisation, figures, EPP, mesures de performance), **examen blanc** et
+  révision des erreurs.
+- **Carrière** : points d’expérience, neuf grades, série de jours, objectifs et défi du jour, boss de la semaine, badges, parcours recommandé.
 - **Graphique à la TradingView** : indicateurs ajoutables et retirables avec leurs paramètres (moyennes mobiles,
   Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et
   objectif posés ou glissés directement sur le graphique. Le coach juge tes stops, objectifs et entrées d'après les

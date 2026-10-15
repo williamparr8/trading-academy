@@ -822,6 +822,7 @@
       ${App.st.trades.some((t) => t.reason === 'Liquidation') ? `<section class="card"><p class="verdict">Une de tes positions a été liquidée par la plateforme : ton compte ne couvrait plus la marge exigée. La leçon sur le levier explique pourquoi et comment l’éviter.</p><div style="margin-top:10px"><button class="btn" type="button" data-lesson="leverage">Ouvrir la leçon sur le levier</button></div></section>` : ''}
       ${coachGameHTML()}
       ${disciplineHTML(App.endInfo)}
+      ${TA.EVENTS ? TA.EVENTS.html(App.g.t[App.g.startIdx], App.g.t[App.st.idx]) : ''}
       ${publishHTML()}
       <section class="card"><h2>Ton journal</h2>${journalHTML(true)}</section>
       <div class="end-acts"><button class="btn primary" type="button" id="e-new">Nouvelle partie</button>${isLive() ? '' : `<button class="btn" type="button" id="e-replay">Rejouer ce défi</button><button class="btn" type="button" id="e-copy">Copier le code de défi ${esc(App.cfg.challenge || App.cfg.code)}</button>`}<button class="btn ghost" type="button" id="e-export">Exporter la partie</button></div>`;

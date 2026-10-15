@@ -14,7 +14,8 @@
   const n1 = (x) => (x == null ? '—' : x.toFixed(1).replace('.', ','));
   const cls = (x) => (x > 0.0005 ? 'pos' : x < -0.0005 ? 'neg' : '');
   const KEY = 'ta:fund', HKEY = 'ta:fundhist';
-  const S = { g: null, st: null, sel: 'QTX', tab: 'fiche', code: '', Q: 8, msg: '', ev: null, armed: false, qty: '' };
+  const S = { g: null, st: null, sel: 'QTX', tab: 'fiche', code: '', Q: 8, msg: '', ev: null, armed: false, qty: '', diff: 'normal' };
+  const gameOpts = () => ({ quarters: S.Q, agg: S.diff === 'expert' ? 2 : undefined, noise: S.diff === 'expert' ? 1.35 : 1 });
   const store = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } },
@@ -22,7 +23,7 @@
   };
   const APP = () => window.TA_APP;
   const newCode = () => 'FD-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-  const persist = () => store.set(KEY, { v: 1, code: S.code, Q: S.Q, st: S.st });
+  const persist = () => store.set(KEY, { v: 1, code: S.code, Q: S.Q, diff: S.diff, st: S.st });
   const kVis = () => S.g.H + S.st.d - (S.st.phase === 'pre' ? 1 : 0);
   const cur = () => S.g.cos.find((c) => c.id === S.sel) || S.g.cos[0];
   const median = (a) => { const b = a.filter((x) => x != null && Number.isFinite(x)).sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : null; };
@@ -37,20 +38,21 @@
       ${saved ? `<div class="pm-resume"><b>Saison en cours</b> · trimestre ${saved.st.d + 1} sur ${saved.Q}<div class="acts"><button class="btn primary sm" type="button" data-fd-home="resume">Reprendre</button><button class="btn ghost sm" type="button" data-fd-home="drop">Abandonner</button></div></div>` : ''}
       <div class="two"><label class="field"><span>Durée</span><select id="fd-q"><option value="8">8 trimestres (2 ans)</option><option value="12">12 trimestres (3 ans)</option></select></label>
       <label class="field"><span>Code (facultatif)</span><input id="fd-code" maxlength="12" placeholder="FD-XXXX-XXXX" spellcheck="false" autocomplete="off"></label></div>
+      <label class="field"><span>Difficulté</span><select id="fd-diff"><option value="normal">Normal : un ou deux pièges comptables</option><option value="expert">Expert : deux pièges, prix plus bruités</option></select></label>
       <p class="err" id="fd-err" role="alert"></p>
       <button class="btn primary big" type="button" data-fd-home="start">Ouvrir la saison</button>
       ${hist.length ? `<p class="sub">Dernières saisons</p><div class="glist">${hist.slice(0, 4).map((h) => `<div class="grow"><span class="mono">${esc(h.code)}</span><span class="mono"><b>${esc(h.grade)}</b> ${h.score}</span><span class="mono ${cls(h.alpha)}">${sp1(h.alpha)} vs indice</span></div>`).join('')}</div>` : ''}`;
   }
-  function start(code, Q) {
-    S.code = code || newCode(); S.Q = Q;
-    S.g = FD.newGame(S.code, { quarters: Q }); S.st = FD.newState(S.g, 100000);
+  function start(code, Q, diff) {
+    S.code = code || newCode(); S.Q = Q; S.diff = diff || 'normal';
+    S.g = FD.newGame(S.code, gameOpts()); S.st = FD.newState(S.g, 100000);
     S.ev = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id; S.qty = '';
     persist(); APP().show('fund'); render();
   }
   function resume() {
     const sv = store.get(KEY);
     if (!sv) return;
-    S.code = sv.code; S.Q = sv.Q; S.g = FD.newGame(S.code, { quarters: S.Q }); S.st = sv.st; S.ev = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id;
+    S.code = sv.code; S.Q = sv.Q; S.diff = sv.diff || 'normal'; S.g = FD.newGame(S.code, gameOpts()); S.st = sv.st; S.ev = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id;
     APP().show('fund'); render();
   }
 
@@ -272,7 +274,7 @@
       const h = e.target.closest('[data-fd-home]');
       if (h) {
         const a = h.dataset.fdHome;
-        if (a === 'start') start(($('#fd-code').value || '').trim().toUpperCase(), +$('#fd-q').value);
+        if (a === 'start') start(($('#fd-code').value || '').trim().toUpperCase(), +$('#fd-q').value, $('#fd-diff').value);
         else if (a === 'resume') resume();
         else if (a === 'drop') { store.del(KEY); renderCard(); }
         return;
@@ -307,7 +309,7 @@
       else if (a === 'next') { const r = FD.next(S.g, S.st); S.msg = ''; if (r.done) finish(); else { persist(); render(); } }
       else if (a === 'end') { if (!S.armed) { S.armed = true; render(); setTimeout(() => { if (S.armed && !S.ev) { S.armed = false; if (APP().screen === 'fund') render(); } }, 4000); } else { S.armed = false; finish(); } }
       else if (a === 'home') { S.g = null; S.ev = null; renderCard(); APP().show('home'); }
-      else if (a === 'replay') start(S.code, S.Q);
+      else if (a === 'replay') start(S.code, S.Q, S.diff);
     });
     document.addEventListener('change', (e) => {
       if (e.target.dataset && e.target.dataset.fdMpred != null && S.st) { FD.predictMacro(S.st, e.target.value); persist(); return; }

@@ -333,6 +333,7 @@
           <tr><td>Frais de transaction</td><td class="r ${cls(ev.costDrag)}">${sp1(ev.costDrag / Math.max(1, st.mon.length) * 12)}</td></tr>
           <tr class="sumrow"><td>Écart total à l’indice</td><td class="r ${cls(ev.ann - ev.bann)}">${sp1(ev.ann - ev.bann)}</td></tr></tbody></table></div>
           <p class="mt-note">Poids actif × rendement relatif de chaque actif, mois par mois. La somme approche l’écart total : le reste vient de la composition des rendements et de la dérive.</p></section>
+        ${TA.EVENTS && TA.EVENTS.rows(g.t[g.start], g.t[st.idx]).length ? `<section class="mt-win pm-notes"><header class="mt-wh"><b>Ce qui se passait dans le monde</b></header><div class="mt-wb"><table class="mt-tbl"><tbody>${TA.EVENTS.rows(g.t[g.start], g.t[st.idx]).map((x) => `<tr><td class="mono" style="white-space:nowrap">${esc(x.date)}</td><td style="white-space:normal">${esc(x.text)}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Lettre au client</b></header><div class="mt-wb pm-pad pm-letter">${letter(g, st, ev).map((t) => `<p>${esc(t)}</p>`).join('')}</div></section>
         <section class="mt-win pm-notes"><header class="mt-wh"><b>Commentaires du coach</b></header><div class="mt-wb pm-pad">
           ${ev.notes.map((n) => `<div class="${kinds[n.kind] || 'fd'}"><i></i><div><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div></div>`).join('')}
