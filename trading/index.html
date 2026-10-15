@@ -950,15 +950,41 @@ main.pm .mt-win,.cp-level .mt-win,.cp-play .mt-win,.cp-map .mt-win{border:1px so
 .mode-tile.big b{font-size:22px}
 .mode-tile.big::before{content:'▶';position:absolute;right:22px;top:20px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.25);font-size:16px;z-index:1}
 .mode-tile.on{outline:3px solid #fff;box-shadow:0 0 0 6px var(--c1),0 22px 44px rgba(20,24,58,.35)}
-.mode-tile:last-child{grid-column:1/-1;min-height:96px;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 14px}
-.mode-tile:last-child b{margin-top:0}
-.mode-tile:last-child i{margin:0 0 0 auto}
+.mode-tile:nth-last-child(-n+2){grid-column:span 2;min-height:110px}
 .home h1{letter-spacing:-.02em;word-spacing:.04em}
 .home .lede,.home .facts span,.mode-tile span{letter-spacing:.005em;word-spacing:.05em}
-@media (max-width:1000px){.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home .facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1000px){.mode-tile:nth-last-child(-n+2){grid-column:auto}.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home .facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.mode-grid{grid-template-columns:minmax(0,1fr)}.mode-tile.big{grid-column:auto}.home>div:first-child{padding:24px 20px}.side-stack{grid-template-columns:minmax(0,1fr)}.home .facts{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:960px){.cp-tiers{grid-template-columns:minmax(0,1fr)}.facts{grid-template-columns:minmax(0,1fr)}.pm-big{font-size:64px}}
 @media (max-width:560px){.home-modes{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ===================== Animations et retours ===================== */
+@keyframes scr-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes ta-pop{0%{transform:scale(.92)}55%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes ta-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@keyframes ta-rise{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes ta-star{0%{transform:scale(.3) rotate(-30deg);opacity:0}60%{transform:scale(1.25) rotate(8deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
+.mode-grid.intro .mode-tile{animation:ta-rise .5s cubic-bezier(.2,.8,.2,1) both}
+.mode-grid.intro .mode-tile:nth-child(2){animation-delay:.05s}.mode-grid.intro .mode-tile:nth-child(3){animation-delay:.1s}.mode-grid.intro .mode-tile:nth-child(4){animation-delay:.15s}
+.mode-grid.intro .mode-tile:nth-child(5){animation-delay:.2s}.mode-grid.intro .mode-tile:nth-child(6){animation-delay:.25s}.mode-grid.intro .mode-tile:nth-child(7){animation-delay:.3s}.mode-grid.intro .mode-tile:nth-child(8){animation-delay:.35s}.mode-grid.intro .mode-tile:nth-child(9){animation-delay:.4s}
+.ex-opt.good,.opt.good{animation:ta-pop .35s ease-out}
+.ex-opt.bad,.opt.bad{animation:ta-shake .4s ease-out}
+.fd.good,.fd.warn{animation:ta-rise .3s ease-out}
+.cp-stars{animation:ta-pop .5s .1s both}
+.cp-tile.done i{animation:ta-star .5s ease-out both}
+.prog i,.hud-bar i{transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.98)}
+.sfx-toggle{margin-left:auto;font-size:15px;line-height:1;padding:4px 8px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.001ms!important}}
+/* ===================== Révision ===================== */
+.rv-big{font:800 64px/1 var(--f-display);letter-spacing:-.03em;margin:6px 0 2px}
+.rv-boxes{display:flex;gap:10px;align-items:stretch;height:140px;margin-bottom:6px}
+.rv-box{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;text-align:center;min-width:0}
+.rv-box i{display:block;width:100%;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#22d3ee,var(--accent))}
+.rv-box b{font-size:15px}.rv-box span{font-size:11.5px;color:var(--muted)}
+.rv-dots{display:inline-flex;align-items:center}
+.rv-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#cbd5e1;margin-left:5px}
+.rv-dot.on{background:var(--accent)}
 </style>
 
 <div class="wrap">
@@ -1041,6 +1067,7 @@ main.pm .mt-win,.cp-level .mt-win,.cp-play .mt-win,.cp-map .mt-win{border:1px so
       <section class="card" id="board-card" aria-label="Classement" data-hm="trade"></section>
       <section class="card" id="learn-card" aria-label="Formation" data-hm="learn"></section>
       <section class="card" id="exam-card" aria-label="Examen blanc" data-hm="learn"></section>
+      <section class="card" id="review-card" aria-label="Révision" data-hm="learn"></section>
       <section class="card" id="gloss-card" aria-label="Glossaire" data-hm="learn"></section>
       <section class="card profile" id="profile" aria-label="Ton niveau" data-hm="trade"></section>
       <div class="card imp" data-hm="trade">
@@ -1273,6 +1300,8 @@ main.pm .mt-win,.cp-level .mt-win,.cp-play .mt-win,.cp-map .mt-win{border:1px so
   <main class="pm" id="screen-exam" hidden></main>
   <main class="pm" id="screen-ips" hidden></main>
   <main class="pm" id="screen-camp" hidden></main>
+  <main class="pm" id="screen-review" hidden></main>
+  <main class="pm" id="screen-chron" hidden></main>
 </div>
 <div class="minibar" id="minibar" hidden>
   <div class="mb-info"><span class="mb-px" id="mb-px"></span><span class="mono" id="mb-pnl"></span></div>
@@ -1304,5 +1333,7 @@ main.pm .mt-win,.cp-level .mt-win,.cp-play .mt-win,.cp-map .mt-win{border:1px so
 <script src="js/camp.js"></script>
 <script src="js/glossary.js"></script>
 <script src="js/ips.js"></script>
+<script src="js/review.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/career.js"></script>
 <script src="js/app.js"></script>

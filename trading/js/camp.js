@@ -179,6 +179,7 @@
     const q = S.qs[S.i], ok = CP.check(q, raw, S.tier);
     if (ok) S.right++;
     S.answered = { v: raw, ok };
+    if (!ok && TA.REVIEW) { try { window.dispatchEvent(new CustomEvent('ta:miss', { detail: { src: 'camp', key: TA.REVIEW.keyOf('camp', q.text), title: 'Campagne · niveau ' + S.n + ', ' + LV[S.n - 1].title, q } })); } catch (e) { /* rien */ } }
     render();
   }
   function finish() {

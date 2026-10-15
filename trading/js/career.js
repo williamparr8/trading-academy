@@ -41,6 +41,7 @@
 
   for (let i = 1; i <= 10; i++) CR.BADGES.push({ id: 'camp' + i, name: 'Chapitre ' + i, desc: 'Réussis les 10 niveaux du chapitre ' + i + ' de la campagne.' });
   CR.BADGES.push({ id: 'campAll', name: 'Gestionnaire de la Maison Boréale', desc: 'Termine le niveau 100 de la campagne.' }, { id: 'campGold', name: 'Maîtrise totale', desc: 'Obtiens trois étoiles aux 100 niveaux.' });
+  CR.BADGES.push({ id: 'rev1', name: 'Mémoire en marche', desc: 'Termine une séance de révision du carnet d’erreurs.' }, { id: 'rev25', name: 'Mémoire d’acier', desc: 'Maîtrise 25 questions de ton carnet d’erreurs.' });
   const KEY = 'ta:career';
   const blank = () => ({ v: 1, xp: 0, days: { last: null, streak: 0, best: 0 }, daily: { date: null, done: {} }, badges: {}, stats: { game: 0, pm: 0, fund: 0, flash: 0, quiz: 0 }, quizPass: {}, log: [] });
   const store = {
@@ -132,6 +133,11 @@
     } else if (e.kind === 'pattern') {
       add(15 + e.right * 4, `${e.right} figures sur ${e.total}`);
       out.badges.push('pattern1'); if (e.right >= 9) out.badges.push('patternAce');
+    } else if (e.kind === 'review') {
+      add(Math.min(40, e.right * 4), `${e.right} réponse${e.right > 1 ? 's' : ''} juste${e.right > 1 ? 's' : ''} en révision`);
+      if (e.total >= 5 && e.right / e.total >= 0.8) add(10, 'révision réussie');
+      if (e.total >= 1) out.badges.push('rev1');
+      if (e.masteredTotal >= 25) out.badges.push('rev25');
     } else if (e.kind === 'quiz') {
       const first = !st.quizPass[e.id];
       if (e.score / e.total >= 0.75) { add(first ? 15 : 3, first ? 'quiz réussi' : 'quiz refait'); }
@@ -168,7 +174,7 @@
       if (['A', 'B'].includes(e.grade)) a.badges.push('boss');
     }
     if ((e.kind === 'pm' || e.kind === 'fund') && !st.daily.done.manager) { st.daily.done.manager = true; a.xp += 30; a.why.push('objectif du jour : gestion'); }
-    if ((e.kind === 'quiz' || e.kind === 'game') && !st.daily.done.learn) { st.daily.done.learn = true; a.xp += 15; a.why.push('objectif du jour : apprendre ou jouer'); }
+    if ((e.kind === 'quiz' || e.kind === 'game' || e.kind === 'review') && !st.daily.done.learn) { st.daily.done.learn = true; a.xp += 15; a.why.push('objectif du jour : apprendre ou jouer'); }
     if (a.xp > 0 && st.days.streak >= 2) { const b = Math.min(20, 5 * st.days.streak); a.xp += b; a.why.push(`série de ${st.days.streak} jours`); }
     st.xp += a.xp;
     const key = e.kind === 'game' ? 'game' : e.kind;
@@ -206,6 +212,7 @@
     const bn = res.badges.map((id) => (CR.BADGES.find((b) => b.id === id) || {}).name).filter(Boolean);
     el.innerHTML = `<b>+${res.xp} XP</b> <span>${esc(res.why.slice(0, 3).join(' · '))}</span>${res.promoted ? `<div class="up">Nouveau grade : ${esc(res.rank.name)}</div>` : ''}${bn.length ? `<div class="bd">Badge : ${esc(bn.join(', '))}</div>` : ''}`;
     box.appendChild(el);
+    try { if (TA.SFX) TA.SFX.play(res.promoted ? 'level' : res.badges.length ? 'badge' : res.xp > 0 ? 'xp' : 'tick'); } catch (e) { /* rien */ }
     if (res.promoted || res.badges.length) { try { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) confetti(); } catch (e) { /* rien */ } }
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 400); }, res.promoted || bn.length ? 7000 : 4500);
   }
@@ -293,7 +300,7 @@
     paint();
   })();
   // sauvegarde de la progression : export et import d'un fichier (le navigateur peut tout oublier)
-  const KEYS = ['ta:career', 'ta:camp', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode'];
+  const KEYS = ['ta:career', 'ta:camp', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode', 'ta:review', 'ta:league', 'ta:chron'];
   function exportProgress() {
     const data = {};
     for (const k of KEYS) { try { const v = localStorage.getItem(k); if (v != null) data[k] = v; } catch (e) { /* rien */ } }
@@ -386,9 +393,11 @@
     { id: 'fund', hm: 'fund', ico: '📊', t: 'Saison des résultats', d: 'Sociétés fictives, états financiers à lire.', c: ['#8b5cf6', '#d946ef'] },
     { id: 'pm', hm: 'pm', target: 'pm-card', ico: '💼', t: 'Mandat de gestion', d: 'Un client, une politique, des contraintes.', c: ['#0d9488', '#047857'] },
     { id: 'ips', hm: 'pm', target: 'ips-card', ico: '📝', t: 'Atelier EPP', d: 'Six dossiers de clients à analyser.', c: ['#f97316', '#be123c'] },
+    { id: 'rev', hm: 'learn', ico: '🧠', t: 'Révision', d: 'Tes erreurs reviennent au bon moment.', c: ['#14b8a6', '#0369a1'] },
     { id: 'learn', hm: 'learn', ico: '📚', t: 'Formation', d: 'Leçons, examen blanc, glossaire.', c: ['#64748b', '#1e293b'] },
   ];
   const AVATARS = ['🧑‍🎓', '🧑‍💼', '📈', '🧠', '🏦', '🦉', '👔', '🚀', '👑'];
+  let introDone = false;
   function gameUI() {
     const home = $('#screen-home'), stack = $('.side-stack');
     if (!home || !stack) return;
@@ -402,8 +411,18 @@
     let hud = $('#hud');
     if (!hud && hero) { hud = document.createElement('div'); hud.id = 'hud'; hud.className = 'hud'; hero.appendChild(hud); }
     if (hud) hud.innerHTML = `<div class="hud-av" aria-hidden="true">${AVATARS[r.i] || '🧑‍🎓'}</div>
-      <div class="hud-main"><div class="hud-rank">${esc(r.name)}</div><div class="hud-sub">${nf.format(st.xp)} XP${r.next ? ' · prochain grade : ' + esc(r.next) : ' · grade maximal'}</div><div class="hud-bar"><i style="width:${Math.round(r.pct * 100)}%"></i></div></div>
+      <div class="hud-main"><div class="hud-rank">${esc(r.name)}</div><div class="hud-sub"><span data-count="${st.xp}">${nf.format(st.xp)}</span> XP${r.next ? ' · prochain grade : ' + esc(r.next) : ' · grade maximal'}</div><div class="hud-bar"><i style="width:${Math.round(r.pct * 100)}%"></i></div></div>
       <div class="hud-chips"><div class="hud-chip"><b>🔥 ${streak}</b>jour${streak > 1 ? 's' : ''} de suite</div><div class="hud-chip"><b>⭐ ${stars}</b>étoiles</div><div class="hud-chip"><b>🎯 ${goals}/4</b>objectifs</div></div>`;
+    const cnt = hud && hud.querySelector('[data-count]');
+    if (cnt) {
+      const from = +(window.__taHudXp || 0), to = st.xp;
+      window.__taHudXp = to;
+      if (from !== to && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        const t0 = performance.now();
+        const step = (t) => { const k = Math.min(1, (t - t0) / 700); cnt.textContent = nf.format(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+      }
+    }
     // grille de modes
     const hm = document.body.dataset.hm;
     let grid = $('#mode-grid');
@@ -411,14 +430,16 @@
     const info = {
       camp: `${done} / 100 niveaux · ${stars} ★`, trade: `${st.stats.game || 0} partie${(st.stats.game || 0) > 1 ? 's' : ''}`, flash: `${st.stats.flash || 0} séance${(st.stats.flash || 0) > 1 ? 's' : ''}`,
       fig: `${st.stats.pattern || 0} séance${(st.stats.pattern || 0) > 1 ? 's' : ''}`, fund: `${st.stats.fund || 0} saison${(st.stats.fund || 0) > 1 ? 's' : ''}`, pm: `${st.stats.pm || 0} mandat${(st.stats.pm || 0) > 1 ? 's' : ''}`,
-      ips: st.badges.ips1 ? 'terminé' : 'à découvrir', learn: `${Object.keys(st.quizPass || {}).length} quiz réussis`,
+      ips: st.badges.ips1 ? 'terminé' : 'à découvrir', rev: TA.REVIEW ? (TA.REVIEW.dueCount() ? TA.REVIEW.dueCount() + ' à revoir' : 'à jour') : '—', learn: `${Object.keys(st.quizPass || {}).length} quiz réussis`,
     };
-    grid.innerHTML = `<div class="mode-head"><h2>Choisis ton mode</h2><span>Chaque mode entraîne une compétence différente.</span></div><div class="mode-grid">${TILES.map((t) => `<button type="button" class="mode-tile${t.big ? ' big' : ''}${t.hm === hm && !t.target ? ' on' : ''}" style="--c1:${t.c[0]};--c2:${t.c[1]}" data-mode-tile="${t.id}" data-hm-go="${t.hm}"${t.target ? ' data-target="' + t.target + '"' : ''}><span class="ico" aria-hidden="true">${t.ico}</span><b>${esc(t.t)}</b><span>${esc(t.d)}</span><i>${t.id === 'camp' ? (done ? 'Continuer · niveau ' + Math.min(100, done + 1) : 'Commencer l’aventure') : esc(info[t.id])}</i></button>`).join('')}</div>`;
+    grid.innerHTML = `<div class="mode-head"><h2>Choisis ton mode</h2><span>Chaque mode entraîne une compétence différente.</span></div><div class="mode-grid${introDone ? '' : ' intro'}">${TILES.map((t) => `<button type="button" class="mode-tile${t.big ? ' big' : ''}${t.hm === hm && !t.target ? ' on' : ''}" style="--c1:${t.c[0]};--c2:${t.c[1]}" data-mode-tile="${t.id}" data-hm-go="${t.hm}"${t.target ? ' data-target="' + t.target + '"' : ''}><span class="ico" aria-hidden="true">${t.ico}</span><b>${esc(t.t)}</b><span>${esc(t.d)}</span><i>${t.id === 'camp' ? (done ? 'Continuer · niveau ' + Math.min(100, done + 1) : 'Commencer l’aventure') : esc(info[t.id])}</i></button>`).join('')}</div>`;
+    introDone = true;
   }
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-mode-tile]');
     if (!t) return;
     const id = t.dataset.modeTile, b = document.querySelector('[data-hmode="' + t.dataset.hmGo + '"]');
+    if (id === 'rev' && TA.REVIEW) { TA.REVIEW.open(); return; }
     if (b) b.click();
     if (id === 'camp') { const go = document.querySelector('#camp-card [data-cp-open]'); if (go) { go.click(); return; } }
     gameUI();

@@ -122,12 +122,12 @@
   App.show = (n) => show(n);   // pour l’écran du gestionnaire de portefeuille (pmui.js)
   function show(name) {
     App.screen = name;
-    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm', 'fund', 'flash', 'pattern', 'exam', 'ips', 'camp']) $('#screen-' + s).hidden = s !== name;
-    $('#top-actions').hidden = name === 'home' || name === 'learn' || name === 'board' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips' || name === 'camp';
+    for (const s of ['home', 'game', 'end', 'learn', 'board', 'pm', 'fund', 'flash', 'pattern', 'exam', 'ips', 'camp', 'review', 'chron']) $('#screen-' + s).hidden = s !== name;
+    $('#top-actions').hidden = name !== 'game' && name !== 'end';
     if (name !== 'board') closeBoard();
     $('#ctx').hidden = name !== 'game';
     $('#minibar').hidden = name !== 'game';
-    document.body.classList.toggle('in-game', name === 'game' || name === 'pm' || name === 'fund' || name === 'flash' || name === 'pattern' || name === 'exam' || name === 'ips' || name === 'camp');
+    document.body.classList.toggle('in-game', ['game', 'pm', 'fund', 'flash', 'pattern', 'exam', 'ips', 'camp', 'review', 'chron'].includes(name));
     window.scrollTo(0, 0);
   }
 
@@ -1527,6 +1527,7 @@
       const qb = box.querySelector(`.qq[data-q="${i}"]`), opts = [...qb.querySelectorAll('.opt')];
       opts.forEach((o, j) => { o.querySelector('input').disabled = true; if (j === q.a) o.classList.add('good'); else if (j === picks[i]) o.classList.add('bad'); });
       if (picks[i] === q.a) score++;
+      try { window.dispatchEvent(new CustomEvent(picks[i] === q.a ? 'ta:hit' : 'ta:miss', { detail: { src: 'quiz', key: 'quiz:' + l.id + ':' + i, title: 'Quiz · ' + l.title, q: { type: 'mcq', text: q.q, opts: q.o, a: q.a, expl: q.e } } })); } catch (e) { /* rien */ }
       qb.insertAdjacentHTML('beforeend', `<p class="expl"><strong>${picks[i] === q.a ? 'Bonne réponse.' : 'Pas tout à fait.'}</strong> ${esc(q.e)}</p>`);
     });
     TA.recordQuiz(App.profile, l.id, score, l.quiz.length); saveProfile();

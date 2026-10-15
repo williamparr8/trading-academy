@@ -81,6 +81,7 @@
     const miss = new Set(store.get(MKEY) || []);
     S.qs.forEach((q, i) => { if (S.ans[i] === q.a) miss.delete(q.key); else miss.add(q.key); });
     store.set(MKEY, [...miss].slice(0, 60));
+    S.qs.forEach((q, i) => { try { window.dispatchEvent(new CustomEvent(S.ans[i] === q.a ? 'ta:hit' : 'ta:miss', { detail: { src: 'exam', key: 'exam:' + q.key, title: 'Examen · ' + q.topic, q: { type: 'mcq', text: q.q, opts: q.o, a: q.a, expl: q.e } } })); } catch (e) { /* rien */ } });
     const h = store.get(HKEY) || [];
     h.unshift({ code: S.code, pct: g.pct, mode: S.mode }); store.set(HKEY, h.slice(0, 8));
     try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'exam', pct: g.pct, pass: g.pass, n: g.n, review: S.mode === 'review', code: S.code } })); } catch (e) { /* rien */ }
