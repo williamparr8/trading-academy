@@ -100,7 +100,7 @@
         { h: 'Un risque asymétrique' },
         { ul: ['Gain maximal : 100 % (le prix ne peut pas descendre sous zéro).', 'Perte maximale : théoriquement illimitée, car le prix peut monter sans limite.', 'Short squeeze : une hausse brutale force les vendeurs à découvert à racheter, ce qui pousse le prix encore plus haut.'] },
         { h: 'Dans le simulateur' },
-        { ul: ['Le stop-loss se place au-dessus du prix d’entrée, l’objectif en dessous.', 'La vente à découvert s’ouvre au niveau Intermédiaire. En crypto, elle exige le niveau Avancé et du levier.', 'Les actions vendues à découvert sont empruntées : le simulateur prélève des frais d’emprunt de 2 % par an à chaque barre. Les dividendes à rembourser sont déjà comptés, car les prix sont ajustés des dividendes.'] },
+        { ul: ['Le stop-loss se place au-dessus du prix d’entrée, l’objectif en dessous.', 'La vente à découvert est permise dès le départ sur les actions et le forex. En crypto, elle exige le niveau Avancé et du levier.', 'Les actions vendues à découvert sont empruntées : le simulateur prélève des frais d’emprunt de 2 % par an à chaque barre. Les dividendes à rembourser sont déjà comptés, car les prix sont ajustés des dividendes.'] },
         { tip: 'Une vente à découvert sans stop est l’une des positions les plus dangereuses qui soient.' },
       ],
       quiz: [

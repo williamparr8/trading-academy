@@ -346,14 +346,14 @@
   CFG.MIN_PLAYED = 0.8;     // part minimale de la partie à jouer pour qu'elle compte
   // `need` = ce qu'il faut réussir pour quitter ce niveau : `games` parties disciplinées
   TA.LEVELS = [
-    { id: 1, name: 'Débutant', blurb: 'Actions, sans levier', need: { games: 2, maxDD: 0.15, minTrades: 3, rMean: null } },
-    { id: 2, name: 'Intermédiaire', blurb: 'Vente à découvert, forex, levier faible', need: { games: 3, maxDD: 0.10, minTrades: 5, rMean: null } },
+    { id: 1, name: 'Débutant', blurb: 'Actions, vente à découvert, sans levier', need: { games: 2, maxDD: 0.15, minTrades: 3, rMean: null } },
+    { id: 2, name: 'Intermédiaire', blurb: 'Forex, crypto, levier faible', need: { games: 3, maxDD: 0.10, minTrades: 5, rMean: null } },
     { id: 3, name: 'Avancé', blurb: 'Options, crypto à levier', need: { games: 4, maxDD: 0.08, minTrades: 8, rMean: 0 } },
     { id: 4, name: 'Pro', blurb: 'Toutes les fonctions, sans restriction', need: null },
   ];
   // `ready: false` = prévu dans une phase suivante : débloquer le niveau ne suffit pas encore à l'utiliser.
   TA.FEATURES = {
-    short: { name: 'Vente à découvert', level: 2, ready: true },
+    short: { name: 'Vente à découvert', level: 1, ready: true },   // parier contre le marché : permis dès le départ sur les actions
     forex: { name: 'Forex', level: 2, ready: true },
     crypto: { name: 'Crypto sans levier', level: 2, ready: true },
     leverage: { name: 'Levier faible', level: 2, ready: true },

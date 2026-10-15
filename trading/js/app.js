@@ -66,7 +66,14 @@
     return out;
   }
   App.prefs.inds = cleanInds(App.prefs.inds, App.prefs.ind);
-  const savePrefs = () => store.set(KEY_PREFS, App.prefs);
+  const savePrefs = () => {
+    if (App.tuto && App.tuto.userInds) {   // pendant le module des indicateurs, la liste du tutoriel n'écrase pas celle du joueur
+      const keep = App.prefs.inds;
+      App.prefs.inds = App.tuto.userInds;
+      store.set(KEY_PREFS, App.prefs);
+      App.prefs.inds = keep;
+    } else store.set(KEY_PREFS, App.prefs);
+  };
   App.profile = TA.sanitizeProfile(store.get(KEY_PROFILE));   // niveau et progression, gardés dans ce navigateur
   const saveProfile = () => store.set(KEY_PROFILE, App.profile);
 
@@ -450,7 +457,7 @@
     else if (p) hint = 'Augmente ta vente à découvert.';
     else {
       const sc = TA.shortCheck(g, st);
-      if (sc.ok) hint = 'Ouvre une vente à découvert : tu gagnes si le prix baisse. Le stop se place au-dessus du prix.' + (TA.MARKETS[g.market].borrow ? ' Des frais d’emprunt de ' + F.pct(TA.MARKETS[g.market].borrow).replace(',00', '') + ' par an sont prélevés à chaque barre.' : '');
+      if (sc.ok) hint = 'Parie contre le marché (vente à découvert) : tu gagnes si le prix baisse. Le stop se place au-dessus du prix.' + (TA.MARKETS[g.market].borrow ? ' Des frais d’emprunt de ' + F.pct(TA.MARKETS[g.market].borrow).replace(',00', '') + ' par an sont prélevés à chaque barre.' : '');
       else { hint = sc.why; locked = true; }
     }
     return { dir, closing, hint, locked, p };
@@ -590,7 +597,7 @@
     if (key !== App.posKey) {
       App.posKey = key;
       if (!p) {
-        box.innerHTML = '<p class="empty">Aucune position ouverte. Place un ordre pour commencer : un achat ouvre une position longue, une vente à découvert (dès le niveau Intermédiaire) gagne quand le prix baisse.</p>';
+        box.innerHTML = '<p class="empty">Aucune position ouverte. Place un ordre pour commencer : un achat ouvre une position longue, une vente à découvert (un pari contre le marché) gagne quand le prix baisse.</p>';
       } else {
         const mk = TA.MARKETS[App.g.market];
         box.innerHTML = `<div class="pos-box">
@@ -848,6 +855,7 @@
     savePrefs();
     if (App.chart && App.g) App.chart.setIndicators(activeInds());
     renderIndChips(); renderIndPanel();
+    if (App.tuto) tutoSync();   // les étapes des indicateurs réagissent à ce que le joueur ajoute ou retire
   }
   const freeColor = (list) => { for (let c = 0; c < 6; c++) if (!list.some((x) => (x.c | 0) === c)) return c; return list.length % 6; };
   function addInd(t) {
@@ -929,76 +937,89 @@
   }
 
   /* =====================================================================
-     Tutoriel : partie guidée de quelques jours, ni sauvegardée ni comptée
+     Tutoriels : trois parcours guidés, ni sauvegardés ni comptés
      (le contenu des étapes est dans js/tutorial.js)
      ===================================================================== */
   const TUTO = TA.TUTORIAL;
+  const tutoMod = () => TUTO.modules.find((m) => m.id === App.tuto.m);
+  const tutoDone = (id) => !!(App.prefs.tuto && App.prefs.tuto[id]);
+  if (App.prefs.tutoDone && !App.prefs.tuto) App.prefs.tuto = { basics: true };   // ancienne préférence : un seul tutoriel
   function renderTutoCard() {
     const box = $('#tuto-card'); if (!box) return;
-    const done = !!App.prefs.tutoDone;
-    box.classList.toggle('new', !done);
-    box.innerHTML = done
-      ? '<div class="tuto-row"><span class="dim">Tutoriel terminé</span><button class="btn sm" type="button" data-tuto="start">Le refaire</button></div>'
-      : '<h2>Nouveau ici ?</h2><p style="margin:0">Un mini-parcours de 3 minutes : tu ouvres, suis et fermes un premier trade sur la vraie plateforme. Rien n’est compté ni sauvegardé.</p><div class="acts"><button class="btn primary" type="button" data-tuto="start">Commencer le tutoriel</button></div>';
+    const first = !tutoDone('basics');
+    box.classList.toggle('new', first);
+    box.innerHTML = `<h2>${first ? 'Nouveau ici ?' : 'Tutoriels'}</h2>
+      <p class="hint" style="margin:0 0 8px">Des mini-parcours sur la vraie plateforme, à ton rythme. Rien n’y est compté ni sauvegardé.</p>
+      <div class="tuto-list">${TUTO.modules.map((m, k) => `<button class="tuto-item${tutoDone(m.id) ? ' done' : ''}" type="button" data-tuto="start" data-mod="${m.id}"><span class="tuto-n">${tutoDone(m.id) ? '✓' : k + 1}</span><span class="tuto-t"><b>${esc(m.title)}</b><span class="dim">${esc(m.blurb)}</span></span><span class="tuto-m">${m.mins} min</span></button>`).join('')}</div>`;
   }
   // Tout ce que les étapes ont besoin de savoir de l'écran et de la partie.
   function tutoCtx() {
-    const g = App.g, st = App.st, ts = st.trades, m = TA.metrics(g, st);
+    const g = App.g, st = App.st, ts = st.trades, m = TA.metrics(g, st), inds = activeInds().map((x) => ({ ...x }));
     return {
-      last: g.c[st.idx], equity: m.equity,
+      last: g.c[st.idx], equity: m.equity, atr: TA.atrAt(g, st.idx),
       sl: parseNum($('#t-sl').value), qty: parseNum($('#t-qty').value), sizeQty: App.sizeQty || 0, risk: parseNum($('#t-risk').value),
       reason: $('#j-reason').value, emotion: $('#j-emo').value, side: App.t.side, type: App.t.type,
-      hasPos: !!st.pos, bars: st.idx - g.startIdx, lastTrade: ts.length ? ts[ts.length - 1] : null,
+      hasPos: !!st.pos, posDir: st.pos ? st.pos.dir : 0, bars: st.idx - g.startIdx, lastTrade: ts.length ? ts[ts.length - 1] : null,
+      inds, has: (t) => inds.some((x) => x.t === t), count: (t) => inds.filter((x) => x.t === t).length,
       money: F.money, smoney: F.smoney, num: F.num,
     };
   }
-  async function startTutorial() {
+  async function startTutorial(modId) {
     if (App.tuto) return;
+    const mod = TUTO.modules.find((m) => m.id === modId) || TUTO.modules[0];
     pause();
-    const T = TUTO, btns = $$('[data-tuto="start"]');
+    const btns = $$('[data-tuto="start"]');
     btns.forEach((b) => { b.disabled = true; });
     try {
-      const g = TA.buildGame(await loadAsset(T.plan.assetId), T.plan, 'swing', T.length);
-      const st = TA.newState(g, T.rules, T.level, 1);
-      const cfg = { v: 1, mode: 'train', code: T.code, challenge: T.code, scenario: 'random', resolved: 'random', style: 'swing', length: T.length, lenIdx: 0, plan: T.plan, market: 'stock', time: 'turn', rules: T.rules, level: T.level, maxLev: 1, created: Date.now(), tuto: true };
-      App.tuto = { i: 0, praise: null, html: '', scroll: false };
+      const g = TA.buildGame(await loadAsset(mod.plan.assetId), mod.plan, 'swing', mod.length);
+      const st = TA.newState(g, mod.rules, mod.level, 1);
+      const cfg = { v: 1, mode: 'train', code: mod.code, challenge: mod.code, scenario: 'random', resolved: 'random', style: 'swing', length: mod.length, lenIdx: 0, plan: mod.plan, market: 'stock', time: 'turn', rules: mod.rules, level: mod.level, maxLev: 1, created: Date.now(), tuto: true };
+      App.tuto = { m: mod.id, i: 0, praise: null, html: '', scroll: false, min: false, userInds: null };
+      if (mod.clearInds) { App.tuto.userInds = App.prefs.inds; App.prefs.inds = []; }   // le module des indicateurs part d'un graphique nu ; tes préférences ne sont pas touchées
       begin(cfg, g, st);
       $('#t-qty').value = '';   // le tutoriel passe par le calculateur de taille
       $('#screen-game').classList.add('is-tuto');
       updateTicket();
       tutoSync();
     } catch (e) {
+      if (App.tuto && App.tuto.userInds) App.prefs.inds = App.tuto.userInds;
       App.tuto = null;
       toast('Impossible de lancer le tutoriel : ' + e.message, 'err');
     }
     btns.forEach((b) => { b.disabled = false; });
   }
   function tutoStepChanged() {
-    const s = TUTO.steps[App.tuto.i];
+    const s = tutoMod().steps[App.tuto.i];
     if (s && s.tab) setTab(s.tab);
-    App.tuto.scroll = true;
+    App.tuto.scroll = true; App.tuto.min = false;
   }
-  // Une étape d'action est franchie dès que sa condition est vraie (même si le joueur est en avance).
+  // Une étape d'action est franchie dès que sa condition est vraie (même si le joueur est en avance) ;
+  // une étape « à valider » attend le bouton Suivant pour laisser le temps de lire.
   function tutoSync() {
     const T = App.tuto; if (!T || !App.g || !App.st) return;
-    const c = tutoCtx();
+    const steps = tutoMod().steps, c = tutoCtx();
     for (;;) {
-      const s = TUTO.steps[T.i];
-      if (!s || !s.when || !s.when(c)) break;
+      const s = steps[T.i];
+      if (!s || !s.when || s.gate || !s.when(c)) break;
       T.praise = s.ok || null; T.i++; tutoStepChanged();
     }
     tutoRender(c);
   }
   function tutoRender(c) {
-    const T = App.tuto, box = $('#tuto'), n = TUTO.steps.length, s = TUTO.steps[T.i];
+    const T = App.tuto, mod = tutoMod(), n = mod.steps.length, s = mod.steps[T.i], box = $('#tuto');
     if (!s) { exitTutorial(true); return; }
-    const manual = !s.when;
-    const html = `<div class="tuto-top"><span>Étape ${T.i + 1} sur ${n}</span><button class="tuto-skip" type="button" data-tuto="quit">Quitter le tutoriel</button></div>
-      <div class="tuto-bar"><i style="width:${Math.round((T.i / (n - 1)) * 100)}%"></i></div>
+    const gate = !!s.gate, done = s.when ? !!s.when(c) : true, manual = !s.when || gate;
+    const todo = typeof s.todo === 'function' ? s.todo(c) : s.todo;
+    const pts = (s.pts || []).map(([h, t]) => `<dt>${h}</dt><dd>${t}</dd>`).join('');
+    const html = `<div class="tuto-top"><span>${esc(mod.title)} · étape ${T.i + 1} sur ${n}</span><span class="tuto-btns"><button class="tuto-skip" type="button" data-tuto="min">${T.min ? 'Agrandir' : 'Réduire'}</button><button class="tuto-skip" type="button" data-tuto="quit">Quitter</button></span></div>
+      <div class="tuto-bar"><i style="width:${Math.round((T.i / Math.max(1, n - 1)) * 100)}%"></i></div>
       ${T.praise ? `<p class="tuto-ok">✓ ${T.praise}</p>` : ''}
-      <h2>${s.title}</h2><p>${s.text(c)}</p>
-      ${manual ? `<div class="tuto-acts"><button class="btn primary" type="button" data-tuto="next">${s.manual || 'Suivant'}</button></div>` : ''}`;
+      <h2>${s.title}</h2>
+      <div class="tuto-more"><p>${s.text(c)}</p>${pts ? `<dl class="tuto-pts">${pts}</dl>` : ''}</div>
+      ${gate ? (done ? '<p class="tuto-ok">✓ Fait.</p>' : `<p class="tuto-todo"><b>À faire :</b> ${todo}</p>`) : ''}
+      ${manual && done ? `<div class="tuto-acts"><button class="btn primary" type="button" data-tuto="next">${s.manual || 'Suivant'}</button></div>` : ''}`;
     if (html !== T.html) { T.html = html; box.innerHTML = html; }
+    box.classList.toggle('min', !!T.min);
     box.hidden = false;
     // repères visuels : on les repose à chaque mise à jour, car les panneaux sont redessinés
     $$('.tuto-hl').forEach((e) => e.classList.remove('tuto-hl'));
@@ -1007,8 +1028,11 @@
     if (T.scroll && targets.length) { T.scroll = false; requestAnimationFrame(() => targets[0].scrollIntoView({ block: 'center', behavior: 'smooth' })); }
   }
   function exitTutorial(completed) {
-    if (!App.tuto) return;
+    const T = App.tuto;
+    if (!T) return;
     pause();
+    const modId = T.m, idx = TUTO.modules.findIndex((m) => m.id === modId), next = TUTO.modules[idx + 1];
+    if (T.userInds) App.prefs.inds = T.userInds;   // le module des indicateurs rend ses préférences au joueur
     App.tuto = null;
     $$('.tuto-hl').forEach((e) => e.classList.remove('tuto-hl'));
     $('#tuto').hidden = true; $('#tuto').innerHTML = '';
@@ -1016,9 +1040,9 @@
     // la partie guidée ne reste pas en mémoire et n'apparaît pas comme « partie en cours »
     App.g = null; App.st = null; App.cfg = null; App.sum = null; App.posKey = ''; App.jKey = '';
     clearTimeout(App.saveT); App.saveT = null;
-    if (completed) { App.prefs.tutoDone = true; savePrefs(); }
+    if (completed) { App.prefs.tuto = { ...(App.prefs.tuto || {}), [modId]: true }; savePrefs(); }
     goHome();
-    toast(completed ? 'Tutoriel terminé. À toi de jouer : lance une partie !' : 'Tutoriel quitté. Tu peux le reprendre depuis l’accueil.', completed ? 'ok' : 'info', 5200);
+    toast(completed ? `Tutoriel terminé.${next ? ` Suite possible : « ${next.title} ».` : ' À toi de jouer : lance une partie !'}` : 'Tutoriel quitté. Tu peux le reprendre depuis l’accueil.', completed ? 'ok' : 'info', 6000);
   }
 
   function goHome() {
@@ -1519,7 +1543,7 @@
       if (del) { App.prefs.inds = App.prefs.inds.filter((x) => x.id !== del.dataset.indDel); applyInds(); return; }
       if (e.target.closest('#ind-open')) { const p = $('#ind-panel'); p.hidden = !p.hidden; if (!p.hidden) renderIndPanel(); renderIndChips(); return; }
       if (e.target.closest('#ind-close')) { $('#ind-panel').hidden = true; renderIndChips(); return; }
-      if (!$('#ind-panel').hidden && !e.target.closest('#ind-panel')) { $('#ind-panel').hidden = true; renderIndChips(); }   // clic ailleurs : le panneau se referme
+      if (!$('#ind-panel').hidden && !e.target.closest('#ind-panel') && !e.target.closest('#tuto')) { $('#ind-panel').hidden = true; renderIndChips(); }   // clic ailleurs : le panneau se referme
       const tool = e.target.closest('#draw-tools [data-tool]');
       if (tool && App.chart) {
         const t = App.chart.tool === tool.dataset.tool ? 'cursor' : tool.dataset.tool;
@@ -1590,12 +1614,14 @@
     document.addEventListener('click', (e) => {
       const b = e.target.closest('[data-tuto]'); if (!b) return;
       const a = b.dataset.tuto;
-      if (a === 'start') startTutorial();
+      if (a === 'start') startTutorial(b.dataset.mod);
       else if (a === 'quit') exitTutorial(false);
+      else if (a === 'min' && App.tuto) { App.tuto.min = !App.tuto.min; tutoSync(); }
       else if (a === 'next' && App.tuto) {
-        const T = App.tuto;
-        if (T.i >= TUTO.steps.length - 1) { exitTutorial(true); return; }
-        T.i++; T.praise = null; tutoStepChanged(); tutoSync();
+        const T = App.tuto, steps = tutoMod().steps, cur = steps[T.i];
+        if (T.i >= steps.length - 1) { exitTutorial(true); return; }
+        T.praise = cur && cur.gate && cur.ok ? cur.ok : null;
+        T.i++; tutoStepChanged(); tutoSync();
       }
     });
     $('#f-journal').addEventListener('change', () => { if (App.tuto) tutoSync(); });

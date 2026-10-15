@@ -79,12 +79,11 @@ function synth(bars) {
   ok('ordre limite rempli puis take-profit atteint');
 
   st = TA.newState(g);
-  assert(!TA.submit(g, st, { side: 'sell', type: 'market', qty: 1 }).ok);
   assert(!TA.submit(g, st, { side: 'buy', type: 'limit', qty: 1, price: 101 }).ok);
   assert(!TA.submit(g, st, { side: 'buy', type: 'market', qty: 1, sl: 101 }).ok);
   assert(!TA.submit(g, st, { side: 'buy', type: 'market', qty: 1e6 }).ok);
   assert(!TA.submit(g, st, { side: 'buy', type: 'market', qty: 1.5 }).ok);
-  ok('validations (short verrouille, niveaux incoherents, liquidites, quantite)');
+  ok('validations (niveaux incoherents, liquidites, quantite)');
 }
 
 // 5. Identité comptable sur parties réelles aléatoires
@@ -346,12 +345,13 @@ function synth(bars) {
   ok('profil : aller-retour exact, valeurs falsifiées ramenées à des valeurs sûres');
 
   // fonctions verrouillées
-  assert(!TA.canUse(1, 'short').ok && /Intermédiaire/.test(TA.canUse(1, 'short').why));
+  assert(TA.canUse(1, 'short').ok, 'la vente à découvert est permise dès le niveau Débutant');
+  assert(!TA.canUse(1, 'forex').ok && /Intermédiaire/.test(TA.canUse(1, 'forex').why) && !TA.canUse(1, 'leverage').ok);
   assert(TA.canUse(2, 'short').ok && TA.canUse(2, 'forex').ok && TA.canUse(2, 'leverage').ok);
   assert(!TA.canUse(2, 'options').ok && /Avancé/.test(TA.canUse(2, 'options').why));
   assert(TA.canUse(3, 'options').ok && TA.canUse(3, 'cryptoLeverage').ok);
   const sold = TA.submit(g1, TA.newState(g1, 'soft', 1), { side: 'sell', type: 'market', qty: 5 });
-  assert(!sold.ok && /Intermédiaire/.test(sold.error));
+  assert(sold.ok && /à découvert/.test(sold.msg), 'vente à découvert permise au niveau 1 : ' + sold.error);
   const sold2 = TA.submit(g1, TA.newState(g1, 'soft', 2), { side: 'sell', type: 'market', qty: 5 });
   assert(sold2.ok && /à découvert/.test(sold2.msg), 'vente à découvert refusée au niveau 2 : ' + sold2.error);
   ok('fonctions verrouillées : message selon le niveau, vente à découvert ouverte dès Intermédiaire');
@@ -467,7 +467,7 @@ function synth(bars) {
   ok('un ordre ne peut pas inverser une position');
 
   // accès selon niveau, marché et levier
-  assert(/Intermédiaire/.test(TA.submit(gs, TA.newState(gs, 'soft', 1), { side: 'sell', type: 'market', qty: 5 }).error));
+  assert(TA.submit(gs, TA.newState(gs, 'soft', 1), { side: 'sell', type: 'market', qty: 5 }).ok, 'actions : vente à découvert dès le niveau 1');
   assert(TA.submit(gf, TA.newState(gf, 'soft', 2), { side: 'sell', type: 'market', qty: 5 }).ok);
   assert(/Avancé/.test(TA.submit(gc, TA.newState(gc, 'soft', 2, 1), { side: 'sell', type: 'market', qty: 5 }).error));
   assert(/levier/.test(TA.submit(gc, TA.newState(gc, 'soft', 3, 1), { side: 'sell', type: 'market', qty: 5 }).error));
@@ -1087,6 +1087,87 @@ function synth(bars) {
   const lb = TA.coachGame(gB, sB, TA.summary(gB, sB, bench)).stats.levels;
   assert(lb.tested === 1 && lb.broke === 1 && lb.held === 0, JSON.stringify(lb));
   ok('tracés : ajout, limites, déplacement, sauvegarde ; indicateurs libres et ATR ; coach : stop, objectif et entrée jugés sur les niveaux connus, miroir en vente à découvert, niveaux testés au bilan');
+}
+
+// 14. Modules du tutoriel : vente à découvert et indicateurs
+{
+  const T = TA.TUTORIAL, J = { reason: 'reject', emotion: 'calm', note: '' };
+  assert.deepEqual(T.modules.map((m) => m.id), ['basics', 'short', 'indicators']);
+  const mkCtx = (g, st, o = {}) => {
+    const m = TA.metrics(g, st), inds = o.inds || [];
+    return { last: g.c[st.idx], equity: m.equity, atr: TA.atrAt(g, st.idx), sl: null, qty: null, sizeQty: 0, risk: 1, reason: '', emotion: '', side: 'buy', type: 'market',
+      hasPos: !!st.pos, posDir: st.pos ? st.pos.dir : 0, bars: st.idx - g.startIdx, lastTrade: st.trades.length ? st.trades[st.trades.length - 1] : null,
+      inds, has: (t) => inds.some((x) => x.t === t), count: (t) => inds.filter((x) => x.t === t).length,
+      money: TA.fmt.money, smoney: TA.fmt.smoney, num: TA.fmt.num, ...o };
+  };
+  // tous les textes de tous les modules sont propres dans tous les états
+  for (const mod of T.modules) {
+    const g = TA.buildGame(read(mod.plan.assetId), mod.plan, 'swing', mod.length), st = TA.newState(g, mod.rules, mod.level, 1);
+    assert(g.endIdx - g.startIdx === mod.length && Math.abs(g.c[g.startIdx] - 100) < 1e-9, mod.id);
+    assert.equal(new Set(mod.steps.map((x) => x.id)).size, mod.steps.length, 'étapes uniques : ' + mod.id);
+    for (const step of mod.steps) {
+      assert(step.title && typeof step.text === 'function');
+      for (const c of [mkCtx(g, st), mkCtx(g, st, { sl: 96, qty: 250, sizeQty: 250, reason: 'trend', emotion: 'calm', side: 'sell', type: 'limit', risk: 2, inds: [{ t: 'sma', n: 20 }, { t: 'sma', n: 50 }, { t: 'atr', n: 14 }] })]) {
+        const txt = [step.text(c), typeof step.todo === 'function' ? step.todo(c) : step.todo || '', ...(step.pts || []).flat()].join(' ');
+        assert(txt.length > 20 && !/undefined|NaN|\[object/.test(txt), 'texte : ' + mod.id + '/' + step.id + ' : ' + txt.slice(0, 120));
+      }
+      if (step.gate) assert(typeof step.when === 'function' && step.todo, 'étape à valider : ' + mod.id + '/' + step.id);
+    }
+  }
+
+  // module « parier contre le marché » : parcours complet à la baisse, stop au-dessus jamais touché
+  {
+    const mod = T.modules.find((m) => m.id === 'short'), by = (id) => mod.steps.find((x) => x.id === id);
+    const g = TA.buildGame(read(mod.plan.assetId), mod.plan, 'swing', mod.length), st = TA.newState(g, mod.rules, mod.level, 1);
+    assert(!by('side').when(mkCtx(g, st)) && by('side').when(mkCtx(g, st, { side: 'sell' })));
+    const stop = by('stop');
+    assert(!stop.when(mkCtx(g, st, { side: 'sell', sl: 96 })) && !stop.when(mkCtx(g, st, { side: 'sell', sl: 10 })) && stop.when(mkCtx(g, st, { side: 'sell', sl: 104 })));
+    assert(/104/.test(stop.text(mkCtx(g, st))));
+    const bid = g.c[st.idx] * (1 - TA.halfSpread(g, st.idx));
+    const sz = TA.sizeForRisk(g, st, bid, 104, 0.01, -1);
+    assert(sz.qty > 100 && sz.qty < 600, 'quantité à découvert : ' + sz.qty);
+    assert(by('size').when(mkCtx(g, st, { side: 'sell', sl: 104, qty: sz.qty, sizeQty: sz.qty })));
+    assert(by('journal').when(mkCtx(g, st, { reason: 'reject', emotion: 'calm' })));
+    const r = TA.submit(g, st, { side: 'sell', type: 'market', qty: sz.qty, sl: 104, j: J });
+    assert(r.ok, r.error);
+    assert(by('go').when(mkCtx(g, st)) && st.pos.dir === -1);
+    for (let k = 0; k < mod.bars; k++) { assert(!by('watch').when(mkCtx(g, st))); TA.advance(g, st); }
+    assert(by('watch').when(mkCtx(g, st)) && st.pos && st.trades.length === 0, 'le stop à 104 n’est pas touché');
+    assert(TA.metrics(g, st).unreal > 0, 'un pari à la baisse gagne quand le prix baisse');
+    assert(TA.submit(g, st, { side: 'buy', type: 'market', qty: st.pos.qty }).ok);
+    assert(by('close').when(mkCtx(g, st)) && st.trades[0].dir === -1);
+    const txt = by('result').text(mkCtx(g, st));
+    assert(/Résultat/.test(txt) && /R<\/b>/.test(txt) && /emprunt/.test(txt), txt);
+    let hi = 0; for (let i = g.startIdx + 1; i <= g.startIdx + 10; i++) hi = Math.max(hi, g.h[i]);
+    assert(hi < 103.5, 'plus haut sur dix jours : ' + hi);
+  }
+
+  // module « indicateurs » : conditions de chaque étape à valider, et un historique qui montre de vrais signaux
+  {
+    const mod = T.modules.find((m) => m.id === 'indicators'), by = (id) => mod.steps.find((x) => x.id === id);
+    const g = TA.buildGame(read(mod.plan.assetId), mod.plan, 'swing', mod.length), st = TA.newState(g, mod.rules, mod.level, 1);
+    const withInds = (inds, o = {}) => mkCtx(g, st, { inds, ...o });
+    assert(!by('vol').when(withInds([])) && by('vol').when(withInds([{ t: 'vol' }])));
+    assert(by('sma').when(withInds([{ t: 'sma', n: 20 }])) && !by('sma').when(withInds([{ t: 'ema', n: 20 }])));
+    assert(!by('sma2').when(withInds([{ t: 'sma', n: 20 }])) && !by('sma2').when(withInds([{ t: 'sma', n: 20 }, { t: 'sma', n: 20 }])) && by('sma2').when(withInds([{ t: 'sma', n: 20 }, { t: 'sma', n: 50 }])));
+    for (const t of ['ema', 'boll', 'rsi', 'macd']) assert(by(t).when(withInds([{ t }])) && !by(t).when(withInds([])), t);
+    const atr = TA.atrAt(g, st.idx), last = g.c[st.idx], atrStep = by('atr');
+    assert(!atrStep.when(withInds([{ t: 'atr', n: 14 }])), 'sans stop');
+    assert(!atrStep.when(withInds([], { sl: last - 2 * atr })), 'sans ATR affiché');
+    assert(!atrStep.when(withInds([{ t: 'atr', n: 14 }], { sl: last - 0.2 * atr })) && !atrStep.when(withInds([{ t: 'atr', n: 14 }], { sl: last - 6 * atr })));
+    assert(atrStep.when(withInds([{ t: 'atr', n: 14 }], { sl: last - 2 * atr })));
+    assert(by('prune').when(withInds([{ t: 'sma' }, { t: 'rsi' }, { t: 'vol' }])) && !by('prune').when(withInds([1, 2, 3, 4].map(() => ({ t: 'sma' })))));
+    // les signaux annoncés dans le texte existent vraiment dans les 60 barres avant le départ
+    const rsi = TA.ind.rsi(g.c, 14), s20 = TA.ind.sma(g.c, 20), s50 = TA.ind.sma(g.c, 50), bb = TA.ind.boll(g.c, 20, 2);
+    let rmin = 100, rmax = 0, cross = 0, bwMin = 1e9, bwMax = 0;
+    for (let j = g.startIdx - 60; j <= g.startIdx; j++) {
+      rmin = Math.min(rmin, rsi[j]); rmax = Math.max(rmax, rsi[j]);
+      if (j > g.startIdx - 60 && (s20[j] - s50[j]) * (s20[j - 1] - s50[j - 1]) < 0) cross++;
+      const bw = (bb.up[j] - bb.lo[j]) / bb.mid[j]; bwMin = Math.min(bwMin, bw); bwMax = Math.max(bwMax, bw);
+    }
+    assert(rmin <= 33 && rmax >= 65 && cross >= 1 && bwMax / bwMin >= 2, JSON.stringify({ rmin, rmax, cross, sq: bwMax / bwMin }));
+  }
+  ok('modules du tutoriel : parcours à la baisse jusqu’au résultat, étapes des indicateurs, signaux présents dans l’historique');
 }
 
 console.log(`\n${n} groupes de tests reussis`);

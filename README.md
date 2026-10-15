@@ -20,8 +20,9 @@ historiques : l'actif et la date sont cachés pendant la partie, puis révélés
   Bollinger, RSI, MACD, ATR, volume), outils de dessin (support / résistance, tendance, zone, gomme), stop-loss et
   objectif posés ou glissés directement sur le graphique. Le coach juge tes stops, objectifs et entrées d'après les
   niveaux que tu as tracés avant d'entrer.
-- **Tutoriel** : un mini-parcours de 3 minutes où le joueur ouvre, suit et ferme un premier trade sur la vraie
-  interface (stop, taille de position à 1 % du compte, journal, portefeuille, résultat en R). Rien n'est sauvegardé ni compté.
+- **Tutoriels** (trois parcours guidés sur la vraie interface, rien n'est sauvegardé ni compté) : un premier trade
+  (stop, taille à 1 % du compte, journal, portefeuille, résultat en R), parier contre le marché (vente à découvert,
+  disponible dès le départ sur les actions), et les indicateurs en détail (volume, moyennes, Bollinger, RSI, MACD, ATR).
 - **Formation** : 9 leçons avec quiz et un coach à règles après chaque transaction.
 - **Défis** : un code de défi (ex. `ABCD-2345-A0S1`) redonne exactement la même partie.
 - **Mode Live** : un compte qui dure, sur les cours réels les plus récents intégrés au site.
@@ -38,7 +39,7 @@ Le jeu existe aussi en page privée sur claude.ai. Cette version publique n'a pa
 ## Développement
 
 ```bash
-npm test            # 57 groupes de tests : moteur, coach, classement, tutoriel, tracés
+npm test            # 58 groupes de tests : moteur, coach, classement, tutoriels, tracés
 npm run build       # construit le site statique dans dist/
 npm run serve       # serveur local sur http://localhost:8765
 ```
