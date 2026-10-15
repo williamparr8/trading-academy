@@ -17,7 +17,7 @@
   // tolérance d'une réponse numérique selon la difficulté
   CP.check = (q, raw, tier) => {
     if (q.type === 'mcq') return Number(raw) === q.a;
-    const v = parseFloat(String(raw).replace(/\s/g, '').replace(',', '.'));
+    const v = parseFloat(String(raw).replace(/\s/g, '').replace(',', '.').replace(/[−–]/g, '-'));
     if (!Number.isFinite(v)) return false;
     const { answer, dec } = q.num, rel = q.tol != null ? q.tol : tier >= 2 ? 0.02 : 0.05;
     const abs = Math.max(Math.abs(answer) * rel, rel === 0 ? 0.5 * Math.pow(10, -dec) : 0.5 * Math.pow(10, -dec));
@@ -51,7 +51,15 @@
   const KEY = 'ta:camp';
   const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* rien */ } } };
   const APP = () => window.TA_APP;
-  const P = (() => { const s = store.get(KEY); return s && s.v === 1 ? { v: 1, stars: s.stars || {}, seen: s.seen || {}, best: s.best || {} } : { v: 1, stars: {}, seen: {}, best: {} }; })();
+  const P = (() => {
+    const s = store.get(KEY), p = { v: 1, stars: {}, seen: {}, best: {} };
+    if (s && s.v === 1 && s.stars && typeof s.stars === 'object') {
+      for (const [k, v] of Object.entries(s.stars)) { const n = +k; if (Number.isInteger(n) && n >= 1 && n <= N && Number.isInteger(v)) p.stars[n] = Math.min(3, Math.max(0, v)); }   // jamais plus de 3 étoiles
+      if (s.seen && typeof s.seen === 'object') p.seen = s.seen;
+      if (s.best && typeof s.best === 'object') p.best = s.best;
+    }
+    return p;
+  })();
   const save = () => store.set(KEY, P);
   const S = { view: 'map', n: 1, tier: 0, qs: [], i: 0, right: 0, answered: null, hint: false, busy: false, log: [] };
   const mulberry = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

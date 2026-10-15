@@ -216,7 +216,9 @@
     let lo = Infinity, hi = -Infinity;
     for (let j = w.i - 60; j <= w.i; j++) { lo = Math.min(lo, w.d.l[j]); hi = Math.max(hi, w.d.h[j]); }
     const lines = [best.p];
-    for (let t = 0; t < 60 && lines.length < 4; t++) { const v = R(rng, lo, hi); if (lines.every((x) => Math.abs(x - v) > 0.9 * A)) lines.push(v); }
+    // les faux niveaux ne doivent tomber ni sur la ligne retenue ni sur un autre groupe de contacts (sinon deux réponses seraient défendables)
+    const touches = (sup ? pivots(w.d, w.i - 80, w.i, 3).lo : pivots(w.d, w.i - 80, w.i, 3).hi).map((x) => x.p);
+    for (let t = 0; t < 200 && lines.length < 4; t++) { const v = R(rng, lo, hi); if (lines.every((x) => Math.abs(x - v) > 0.9 * A) && touches.every((x) => Math.abs(x - v) > (t < 150 ? 0.5 : 0.25) * A)) lines.push(v); }
     while (lines.length < 4) lines.push(best.p + (lines.length * 1.2 + 1) * A);
     const order = shuffle(rng, lines.map((v, k) => ({ v, ok: k === 0 })));
     const letters = ['A', 'B', 'C', 'D'], hl = order.map((x, k) => ({ p: x.v, t: letters[k], c: ['#f0b34a', '#4f9dff', '#b69cff', '#4cc3d9'][k] }));

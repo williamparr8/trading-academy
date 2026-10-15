@@ -293,7 +293,7 @@
     paint();
   })();
   // sauvegarde de la progression : export et import d'un fichier (le navigateur peut tout oublier)
-  const KEYS = ['ta:career', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode'];
+  const KEYS = ['ta:career', 'ta:camp', 'ta:fundhist', 'ta:pmhist', 'ta:flashhist', 'ta:patternhist', 'ta:examhist', 'ta:exammiss', 'ta:ipshist', 'ta:homemode'];
   function exportProgress() {
     const data = {};
     for (const k of KEYS) { try { const v = localStorage.getItem(k); if (v != null) data[k] = v; } catch (e) { /* rien */ } }
@@ -313,6 +313,7 @@
         const v = JSON.parse(j.data[k]);
         if (k === 'ta:career' && !(v && typeof v === 'object' && Number.isFinite(v.xp) && v.badges && typeof v.badges === 'object' && !Array.isArray(v.badges))) continue;
         if (k.endsWith('hist') && !Array.isArray(v)) continue;
+        if (k === 'ta:camp' && !(v && typeof v === 'object' && v.stars && typeof v.stars === 'object')) continue;
         localStorage.setItem(k, j.data[k]); n++;
       }
       renderCard();
