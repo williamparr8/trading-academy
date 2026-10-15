@@ -671,6 +671,25 @@ tr[data-fd-sel]{cursor:pointer}
 .fl-btns{display:flex;flex-direction:column;gap:8px}
 .fl-res{padding:10px;border:1px solid var(--line-2);background:#fafafa;margin-bottom:8px}.fl-res b{font-size:28px}.fl-res p{margin:4px 0 0}
 @media (max-width:960px){.fl-grid{grid-template-columns:minmax(0,1fr)}}
+/* ---- carrière ---- */
+.cr-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
+.cr-rank{font:700 18px var(--f-display);display:block}
+.cr-top small{color:var(--muted);font-size:12px}
+.cr-streak{text-align:center;padding:2px 10px;border:1px solid var(--line-2);background:#fff8e6}
+.cr-streak b{font-size:20px;display:block;line-height:1.1}
+.cr-goals{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.cr-goals li{display:flex;align-items:center;gap:8px;font-size:13px}
+.cr-goals li .ic{width:14px;text-align:center;font-weight:700;color:var(--muted)}
+.cr-goals li.ok{color:var(--muted)}.cr-goals li.ok .ic{color:var(--up)}
+.cr-goals li .btn{margin-left:auto}
+.cr-goals small{color:var(--muted)}
+.cr-badges{display:flex;flex-wrap:wrap;gap:4px}
+.cr-badge{padding:1px 8px;border:1px solid var(--line);background:#f4f4f4;color:#9a9a9a;font-size:11.5px}
+.cr-badge.on{background:#fff8e6;border-color:#d9a400;color:#6b4e00;font-weight:600}
+.xp-toasts{position:fixed;right:16px;top:60px;z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+.xp-toast{background:#fff;border:1px solid #d9a400;border-left:4px solid #d9a400;padding:8px 12px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:13px;max-width:360px;animation:tin .2s ease-out}
+.xp-toast b{font-size:15px;color:#6b4e00}.xp-toast .up,.xp-toast .bd{margin-top:3px;font-weight:600}
+.xp-toast.out{opacity:0;transition:opacity .4s}
 @media (max-width:960px){.pm-grid,.pm-report{grid-template-columns:minmax(0,1fr);grid-template-areas:none}.pm-grade,.pm-res,.pm-att,.pm-notes{grid-area:auto}.pm-big{font-size:56px}}
 </style>
 
@@ -700,6 +719,7 @@ tr[data-fd-sel]{cursor:pointer}
       </ul>
     </div>
     <div class="side-stack">
+      <section class="card" id="career-card" aria-label="Carrière"></section>
       <section class="card tuto-card" id="tuto-card" aria-label="Tutoriel"></section>
       <section class="card" id="pm-card" aria-label="Gestionnaire de portefeuille"></section>
       <section class="card" id="fund-card" aria-label="Saison des résultats"></section>
@@ -981,6 +1001,7 @@ tr[data-fd-sel]{cursor:pointer}
 <script src="js/engine.js"></script>
 <script src="js/chart.js"></script>
 <script src="js/lessons.js"></script>
+<script src="js/lessons2.js"></script>
 <script src="js/coach.js"></script>
 <script src="js/board.js"></script>
 <script src="js/tutorial.js"></script>
@@ -990,4 +1011,5 @@ tr[data-fd-sel]{cursor:pointer}
 <script src="js/fund.js"></script>
 <script src="js/fundui.js"></script>
 <script src="js/flash.js"></script>
+<script src="js/career.js"></script>
 <script src="js/app.js"></script>

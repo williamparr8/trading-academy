@@ -130,6 +130,20 @@
     }).join('');
   }
 
+  // risque des douze derniers mois : ce que le comité regarde avant de rééquilibrer
+  function riskHTML() {
+    const k = PM.risk(S.g, S.st);
+    if (!k) return '<div class="mt-win"><header class="mt-wh"><b>Risque et corrélations</b></header><p class="mt-note">Pas assez d’historique pour estimer les risques.</p></div>';
+    const heat = (c) => { const a = Math.min(1, Math.abs(c)); return c >= 0 ? `rgba(216,30,39,${(a * 0.55).toFixed(2)})` : `rgba(11,63,214,${(a * 0.55).toFixed(2)})`; };
+    const rows = k.ids.map((id) => `<tr><td><b>${esc(PM.info(id).name)}</b></td><td class="r ${cls(k.ret[id])}">${sp1(k.ret[id])}</td><td class="r">${p1(k.vol[id])}</td><td class="r">${p1(PM.value(S.g, S.st).w[id])}</td><td class="r">${p1(k.rc[id])}<div class="pm-sbar"><i style="width:${Math.round(Math.max(0, Math.min(1, k.rc[id])) * 100)}%"></i></div></td></tr>`).join('');
+    const head = k.ids.map((id) => `<th class="r" title="${esc(PM.info(id).name)}">${esc(id.replace('_TO', ''))}</th>`).join('');
+    const grid = k.ids.map((a) => `<tr><td><b>${esc(a.replace('_TO', ''))}</b></td>${k.ids.map((b) => `<td class="r" style="background:${heat(k.corr[a][b])}">${k.corr[a][b].toFixed(2).replace('.', ',')}</td>`).join('')}</tr>`).join('');
+    return `<div class="mt-win"><header class="mt-wh"><b>Risque et corrélations</b><span class="mt-wsub">${k.n} derniers jours · volatilité estimée du portefeuille ${p1(k.volP)} · perte mensuelle probable (95 %) ${p1(k.var95m)}</span></header>
+      <div class="mt-wb"><table class="mt-tbl pm-tbl"><thead><tr><th>Actif</th><th class="r">Rendement</th><th class="r">Volatilité</th><th class="r">Poids</th><th class="r">Part du risque</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="mt-tbl pm-tbl pm-corr"><thead><tr><th>Corrélations</th>${head}</tr></thead><tbody>${grid}</tbody></table>
+      <p class="mt-note">Part du risque : un actif léger mais volatil peut dominer le risque. Rouge : corrélation élevée (peu de diversification) ; bleu : négative.</p></div></div>`;
+  }
+
   function render() {
     const root = $('#screen-pm');
     if (!root || !S.g) return;
@@ -180,6 +194,7 @@
             <div class="pm-note"><label class="field"><span>Justification de la décision (consignée au journal)</span><input id="pm-note" maxlength="160" placeholder="Pourquoi ce rééquilibrage ? Ex. : ramener les actions sous la limite" autocomplete="off"></label>
               <p class="err" id="pm-msg" role="alert">${esc(S.msg)}</p></div>
           </div>
+          ${riskHTML()}
         </section>
         <aside class="mt-win pm-right"><header class="mt-wh"><b>Indicateurs</b></header>
           <div class="mt-wb pm-pad">
@@ -237,6 +252,7 @@
     h.unshift({ name: S.g.mand.name, grade: S.ev.score.grade, score: Math.round(S.ev.score.total), active: S.ev.ann - S.ev.bann, code: S.code });
     store.set(HKEY, h.slice(0, 8));
     store.del(KEY);
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'pm', grade: S.ev.score.grade, score: S.ev.score.total, monthsBad: S.ev.monthsBad, active: S.ev.ann - S.ev.bann, code: S.code } })); } catch (e) { /* rien */ }
     render();
   }
 

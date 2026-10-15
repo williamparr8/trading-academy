@@ -343,6 +343,31 @@
     return out;
   };
 
+  // statistiques de risque des douze derniers mois (rendements quotidiens) : volatilité, corrélations, part du risque
+  PM.risk = function (g, st) {
+    const i1 = st.idx, lo = Math.max(1, i1 - 252), n = i1 - lo + 1;
+    if (n < 40) return null;
+    const ids = PM.RISKY, r = {}, mu = {}, vol = {};
+    for (const id of ids) {
+      const a = [];
+      for (let t = lo; t <= i1; t++) a.push(g.px[id][t] / g.px[id][t - 1] - 1);
+      r[id] = a; mu[id] = mean(a); vol[id] = sd(a);
+    }
+    const cov = (a, b) => { let s = 0; for (let t = 0; t < n; t++) s += (r[a][t] - mu[a]) * (r[b][t] - mu[b]); return s / (n - 1); };
+    const C = {}, V = {};
+    for (const a of ids) { C[a] = {}; for (const b of ids) { V[a + b] = cov(a, b); C[a][b] = vol[a] > 0 && vol[b] > 0 ? V[a + b] / (vol[a] * vol[b]) : 0; } }
+    const w = PM.value(g, st).w;
+    let varP = 0;
+    const sw = {};
+    for (const a of ids) { sw[a] = 0; for (const b of ids) sw[a] += V[a + b] * w[b]; varP += w[a] * sw[a]; }
+    const rc = {};
+    for (const a of ids) rc[a] = varP > 0 ? (w[a] * sw[a]) / varP : 0;
+    const ret = {};
+    for (const id of ids) ret[id] = g.px[id][i1] / g.px[id][lo - 1] - 1;
+    const volP = Math.sqrt(varP) * Math.sqrt(252);
+    return { n, ids, vol: Object.fromEntries(ids.map((a) => [a, vol[a] * Math.sqrt(252)])), ret, corr: C, rc, volP, var95m: 1.645 * volP / Math.sqrt(12) };
+  };
+
   PM.summaryText = (ev) => `Mandat noté ${ev.score.grade} (${Math.round(ev.score.total)}/100)`;
   PM.stats = { mean, sd };
 })(typeof window !== 'undefined' ? window : globalThis);

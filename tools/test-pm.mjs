@@ -115,4 +115,15 @@ const rnd = (seed) => { let s = seed >>> 0; return () => { s = (Math.imul(s, 166
   assert(st.breach[0].includes('ban'));
   ok('exclusion, concentration et liquidité : dépassements détectés et comptés');
 }
+// 8. risque : parts du risque, volatilité, corrélations
+{
+  const m = PM.MANDATES[1], g = PM.build(m, series, { seed: 'K8' }), st = PM.newState(g);
+  for (let k = 0; k < 6; k++) PM.step(g, st);
+  const k = PM.risk(g, st);
+  assert(k && k.n >= 40);
+  near(PM.RISKY.reduce((s, id) => s + k.rc[id], 0), 1, 1e-9, 'parts du risque');
+  for (const a of PM.RISKY) { near(k.corr[a][a], 1, 1e-9); for (const b of PM.RISKY) assert(Math.abs(k.corr[a][b]) <= 1.0000001 && Math.abs(k.corr[a][b] - k.corr[b][a]) < 1e-12); assert(k.vol[a] > 0); }
+  assert(k.volP > 0 && k.volP < 1);
+  ok('risque : parts du risque = 100 %, corrélations symétriques bornées, volatilité du portefeuille');
+}
 console.log(`  ${n} groupes du gestionnaire de portefeuille réussis`);

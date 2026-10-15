@@ -750,6 +750,7 @@
     const live = isLive();
     const out = TA.applyResult(App.profile, { code: App.cfg.code, level, ev, ret: sum.retPct, dd: sum.maxDD, trades: sum.trades, replay: !!App.cfg.replay, live });
     saveProfile();
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'game', ret: sum.retPct, bh: sum.bh, dd: sum.maxDD, trades: sum.trades, counted: out.counted, passed: out.passed, replay: !!App.cfg.replay, live, scenario: App.cfg.resolved } })); } catch (e) { /* rien */ }
     App.endInfo = { level, ev, out, fresh: !App.cfg.replay };
     App.sum = sum;
     const res = store.get(KEY_RESULTS) || [];
@@ -1525,6 +1526,7 @@
       qb.insertAdjacentHTML('beforeend', `<p class="expl"><strong>${picks[i] === q.a ? 'Bonne réponse.' : 'Pas tout à fait.'}</strong> ${esc(q.e)}</p>`);
     });
     TA.recordQuiz(App.profile, l.id, score, l.quiz.length); saveProfile();
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'quiz', id: l.id, score, total: l.quiz.length } })); } catch (e) { /* rien */ }
     const ok = score / l.quiz.length >= TA.PASS_RATIO, nextL = TA.LESSONS[TA.LESSONS.indexOf(l) + 1];
     $('#quiz-end').innerHTML = `<p class="score" style="width:100%;margin:0 0 4px"><strong>${score} sur ${l.quiz.length}.</strong> ${ok ? 'Quiz réussi.' : 'Pas encore : relis la leçon et réessaie.'}</p>
       <button class="btn" type="button" data-act="retry">Refaire le quiz</button>${nextL ? `<button class="btn primary" type="button" data-lesson="${nextL.id}">Leçon suivante</button>` : ''}<button class="btn ghost" type="button" data-act="list">Toutes les leçons</button>`;

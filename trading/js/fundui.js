@@ -168,7 +168,7 @@
     const h = store.get(HKEY) || [];
     h.unshift({ code: S.code, grade: S.ev.score.grade, score: Math.round(S.ev.score.total), alpha: S.ev.alpha });
     store.set(HKEY, h.slice(0, 8)); store.del(KEY);
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'fund', grade: S.ev.score.grade, score: S.ev.score.total, alpha: S.ev.alpha, accuracy: S.ev.accuracy, avoided: S.g.agg.length - S.ev.heldThroughBlow.length, code: S.code } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'fund', grade: S.ev.score.grade, score: S.ev.score.total, alpha: S.ev.alpha, accuracy: S.ev.accuracy, predictions: S.st.score.total, avoided: S.g.agg.length - S.ev.heldThroughBlow.length, code: S.code } })); } catch (e) { /* rien */ }
     render();
   }
 

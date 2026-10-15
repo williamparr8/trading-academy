@@ -1,0 +1,31 @@
+// Tests de la progression : grades, code du jour, XP et badges.
+import assert from 'node:assert/strict';
+globalThis.localStorage = { _m: new Map(), getItem(k) { return this._m.has(k) ? this._m.get(k) : null; }, setItem(k, v) { this._m.set(k, String(v)); }, removeItem(k) { this._m.delete(k); } };
+import '../trading/js/career.js';
+const CR = globalThis.TA.CAREER;
+let n = 0;
+const ok = (m) => { n++; console.log('  OK career:', m); };
+assert.equal(CR.rankOf(0).name, 'Stagiaire'); assert.equal(CR.rankOf(150).name, 'Analyste junior'); assert.equal(CR.rankOf(99999).next, null);
+assert(Math.abs(CR.rankOf(275).pct - 0.5) < 1e-9);
+assert.equal(CR.dayCode('2026-10-15'), CR.dayCode('2026-10-15')); assert.notEqual(CR.dayCode('2026-10-15'), CR.dayCode('2026-10-16'));
+assert(/^FL-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(CR.dayCode('2026-10-15')));
+ok('grades, progression vers le grade suivant, code du jour reproductible');
+{
+  const r1 = CR.apply({ kind: 'game', ret: 0.1, bh: 0.05, dd: -0.05, trades: 4, counted: true, passed: true, replay: false, scenario: 'gfc' });
+  assert(r1.xp >= 85 && r1.badges.includes('first') && r1.badges.includes('beat') && r1.badges.includes('discipline') && r1.badges.includes('crisis'), JSON.stringify(r1));
+  const xp1 = CR.state().xp;
+  const r2 = CR.apply({ kind: 'pm', grade: 'A', monthsBad: 0 });
+  assert(r2.badges.includes('pm1') && r2.badges.includes('pmA') && r2.badges.includes('pmClean'));
+  const r3 = CR.apply({ kind: 'fund', grade: 'B', accuracy: 0.7, predictions: 8, avoided: 1 });
+  assert(r3.badges.includes('trap') && r3.badges.includes('oracle') && r3.badges.includes('fund1'));
+  const r4 = CR.apply({ kind: 'flash', total: 6, taken: 10, wins: 6, code: CR.dayCode() });
+  assert(r4.badges.includes('flash1') && r4.badges.includes('flashPos') && r4.why.some((x) => x.includes('défi du jour')));
+  assert(CR.state().badges.all, 'badge touche-à-tout');
+  assert(CR.state().xp > xp1 && CR.state().days.streak === 1);
+  const q = CR.apply({ kind: 'quiz', id: 'candles', score: 4, total: 4 });
+  assert(q.xp >= 15);
+  const q2 = CR.apply({ kind: 'quiz', id: 'candles', score: 4, total: 4 });
+  assert(q2.xp < q.xp, 'un quiz refait rapporte moins');
+  ok('XP et badges des cinq modules, objectifs du jour, quiz refait moins payant');
+}
+console.log(`  ${n} groupes de la carrière réussis`);
