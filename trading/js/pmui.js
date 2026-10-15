@@ -66,7 +66,7 @@
       const m = mandOf(mandId);
       S.mand = m.id; S.scen = scen; S.code = code || newCode();
       S.g = PM.build(m, series, { seed: S.code, scenario: scen });
-      S.st = PM.newState(S.g); S.ev = null; S.msg = ''; S.armed = false;
+      S.st = PM.newState(S.g); S.ev = null; S.ai = null; S.msg = ''; S.armed = false;
       S.targets = currentTargets();
       persist();
       TA_APP().show('pm');
@@ -85,7 +85,7 @@
       const m = mandOf(saved.mand);
       S.mand = m.id; S.scen = saved.scen; S.code = saved.code;
       S.g = PM.build(m, series, { seed: saved.code, scenario: saved.scen });
-      S.st = saved.st; S.ev = null; S.msg = ''; S.armed = false;
+      S.st = saved.st; S.ev = null; S.ai = null; S.msg = ''; S.armed = false;
       S.targets = currentTargets();
       TA_APP().show('pm');
       render();
@@ -272,7 +272,7 @@
     h.unshift({ name: S.g.mand.name, grade: S.ev.score.grade, score: Math.round(S.ev.score.total), active: S.ev.ann - S.ev.bann, code: S.code });
     store.set(HKEY, h.slice(0, 8));
     store.del(KEY);
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'pm', grade: S.ev.score.grade, score: S.ev.score.total, monthsBad: S.ev.monthsBad, active: S.ev.ann - S.ev.bann, code: S.code, scenario: S.scen } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'pm', grade: S.ev.score.grade, score: S.ev.score.total, monthsBad: S.ev.monthsBad, active: S.ev.ann - S.ev.bann, code: S.code, scenario: S.scen, mand: S.mand } })); } catch (e) { /* rien */ }
     render();
   }
 

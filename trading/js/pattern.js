@@ -52,8 +52,10 @@
   };
   PT.question = function (rng) {
     const type = PT.TYPES[Math.floor(rng() * PT.TYPES.length)];
-    const wrong = PT.TYPES.filter((t) => t.id !== type.id).sort(() => rng() - 0.5).slice(0, 3);
-    const opts = [type, ...wrong].sort(() => rng() - 0.5);
+    // Fisher-Yates : même code, mêmes figures dans tous les navigateurs
+    const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const wrong = shuffle(PT.TYPES.filter((t) => t.id !== type.id)).slice(0, 3);
+    const opts = shuffle([type, ...wrong]);
     return { type, opts: opts.map((t) => t.id), d: PT.generate(rng, type) };
   };
 

@@ -46,13 +46,13 @@
   function start(code, Q, diff) {
     S.code = code || newCode(); S.Q = Q; S.diff = diff || 'normal';
     S.g = FD.newGame(S.code, gameOpts()); S.st = FD.newState(S.g, 100000);
-    S.ev = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id; S.qty = '';
+    S.ev = null; S.ai = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id; S.qty = '';
     persist(); APP().show('fund'); render();
   }
   function resume() {
     const sv = store.get(KEY);
     if (!sv) return;
-    S.code = sv.code; S.Q = sv.Q; S.diff = sv.diff || 'normal'; S.g = FD.newGame(S.code, gameOpts()); S.st = sv.st; S.ev = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id;
+    S.code = sv.code; S.Q = sv.Q; S.diff = sv.diff || 'normal'; S.g = FD.newGame(S.code, gameOpts()); S.st = sv.st; S.ev = null; S.ai = null; S.msg = ''; S.armed = false; S.tab = 'fiche'; S.sel = S.g.cos[1].id;
     APP().show('fund'); render();
   }
 
@@ -214,7 +214,7 @@
     const h = store.get(HKEY) || [];
     h.unshift({ code: S.code, grade: S.ev.score.grade, score: Math.round(S.ev.score.total), alpha: S.ev.alpha });
     store.set(HKEY, h.slice(0, 8)); store.del(KEY);
-    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'fund', grade: S.ev.score.grade, score: S.ev.score.total, alpha: S.ev.alpha, accuracy: S.ev.accuracy, predictions: S.st.score.total, avoided: S.g.agg.length - S.ev.heldThroughBlow.length, code: S.code } })); } catch (e) { /* rien */ }
+    try { window.dispatchEvent(new CustomEvent('ta:xp', { detail: { kind: 'fund', grade: S.ev.score.grade, score: S.ev.score.total, alpha: S.ev.alpha, accuracy: S.ev.accuracy, predictions: S.st.score.total, avoided: S.ev.blown.length - S.ev.heldThroughBlow.length, code: S.code } })); } catch (e) { /* rien */ }
     render();
   }
 

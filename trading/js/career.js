@@ -145,7 +145,7 @@
     const mode = e.kind === 'game' ? 'trade' : e.kind;
     if (e.kind === 'flash' && e.code === CR.dayCode(now, 'FL') && !st.daily.done.flash) { st.daily.done.flash = true; a.xp += 40; a.why.push('défi du jour : Flash'); }
     if (e.kind === 'game' && String(e.code || '').startsWith(CR.gameCode(now)) && !st.daily.done.dailygame) { st.daily.done.dailygame = true; a.xp += 40; a.why.push('défi du jour : partie'); }
-    if (e.kind === 'pm' && e.code === CR.weekCode() && (!st.weekly || st.weekly.week !== CR.weekStart())) {
+    if (e.kind === 'pm' && e.code === CR.weekCode() && e.scenario === 'krach2008' && e.mand === 'retraitee' && (!st.weekly || st.weekly.week !== CR.weekStart())) {
       st.weekly = { week: CR.weekStart(), grade: e.grade };
       const bonus = ['A', 'B', 'C'].includes(e.grade) ? 80 : 20;
       a.xp += bonus; a.why.push('boss de la semaine');

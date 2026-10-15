@@ -258,7 +258,7 @@
     const mc = g.macro[k];
     const dr = mc.rate - mc.prevRate, dur = FD.SECTORS[c.sec].dur;
     if (Math.abs(dr) >= 0.004 && Math.abs(dur) >= 3) out.push({ t: dr > 0 ? 'bad' : 'good', x: `Taux directeur ${dr > 0 ? 'en hausse' : 'en baisse'} : les titres à longue « duration » (technologie, services publics) en souffrent ou en profitent le plus.` });
-    if (c.isAgg && c.blowQ - k >= 1) {
+    if (!r.blow && r.dso > c.dso * 1.12) {   // d'après les chiffres publics seulement : jamais d'après l'état caché
       const t0 = c.q[Math.max(0, k - 3)];
       if (r.dso > c.dso * 1.12) out.push({ t: 'warn', x: `Attention : les créances montent à ${Math.round(r.dso)} jours de ventes. Des ventes qui ne sont pas encaissées sont un signal d’alerte (compare le flux de trésorerie d’exploitation au bénéfice net).` });
       void t0;
@@ -298,16 +298,17 @@
     const picks = g.cos.map((c) => {
       const buys = st.trades.filter((t) => t.id === c.id && t.shares > 0), held = st.sh[c.id] || 0;
       const last = c.px[phaseEnd][k1];
-      return { id: c.id, name: c.name, held, ret: st.cost[c.id] ? last / st.cost[c.id] - 1 : null, bought: buys.length > 0, isAgg: c.isAgg, blowQ: c.blowQ, retPeriod: last / c.px.pre[k0] - 1 };
+      return { id: c.id, name: c.name, held, ret: held > 0 && st.cost[c.id] ? last / st.cost[c.id] - 1 : null, bought: buys.length > 0, isAgg: c.isAgg, blowQ: c.blowQ, retPeriod: last / c.px.pre[k0] - 1 };
     });
-    const trapped = g.cos.filter((c) => c.isAgg && c.blowQ <= k1 && st.trades.some((t) => t.id === c.id && t.shares > 0 && g.H + t.d < c.blowQ));
-    const heldThroughBlow = trapped.filter((c) => { const r = st.results.find((x) => x.k === c.blowQ); if (!r) return false; const h = r.res.find((y) => y.id === c.id); return h && h.held > 0; });
+    // chutes réellement publiées pendant la saison, et titres détenus juste avant (la publication fixe la position)
+    const blown = g.cos.filter((c) => c.isAgg && st.results.some((x) => x.k === c.blowQ));
+    const heldThroughBlow = blown.filter((c) => { const r = st.results.find((x) => x.k === c.blowQ), h = r.res.find((y) => y.id === c.id); return h && h.held > 0; });
     const accuracy = st.score.total ? st.score.right / st.score.total : null;
     const maxW = (() => { let m = 0; for (const c of g.cos) m = Math.max(m, ((st.sh[c.id] || 0) * FD.price(g, st, c)) / Math.max(1, eq)); return m; })();
     const sPerf = clamp(50 + 250 * (tot - idxRet), 0, 100), sAcc = accuracy == null ? 40 : clamp(accuracy * 150 - 10, 0, 100);
     const sRisk = clamp(100 - 220 * Math.max(0, maxW - 0.35) - 40 * heldThroughBlow.length, 0, 100);
     const score = 0.5 * sPerf + 0.25 * sAcc + 0.25 * sRisk;
-    return { eq, tot, idxRet, alpha: tot - idxRet, picks, heldThroughBlow: heldThroughBlow.map((c) => c.id), accuracy, maxW, fees: st.fees,
+    return { eq, tot, idxRet, alpha: tot - idxRet, picks, blown: blown.map((c) => c.id), heldThroughBlow: heldThroughBlow.map((c) => c.id), accuracy, maxW, fees: st.fees,
       score: { perf: sPerf, acc: sAcc, risk: sRisk, total: score, grade: score >= 82 ? 'A' : score >= 68 ? 'B' : score >= 54 ? 'C' : score >= 42 ? 'D' : 'E' } };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

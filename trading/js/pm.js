@@ -164,12 +164,15 @@
       sum += w;
     }
     if (sum > 1.0001) return { ok: false, error: 'Les poids dépassent 100 % : l’encaisse ne peut pas être négative.' };
+    // un poids à moins de 0,06 point de l'actuel est laissé tel quel : les cibles arrondies ne génèrent pas d'échanges fantômes
+    const T = {};
+    for (const id of PM.RISKY) { const w = Number(target[id]) || 0; T[id] = Math.abs(w - cur.w[id]) < 0.0006 ? cur.w[id] : w; }
     let cost0 = 0;
-    for (const id of PM.RISKY) cost0 += Math.abs((Number(target[id]) || 0) * V - cur.v[id]) * A[id].cost;
+    for (const id of PM.RISKY) cost0 += Math.abs(T[id] * V - cur.v[id]) * A[id].cost;
     const base = V - cost0, desired = {};
     let cost = 0, traded = 0, risky = 0;
     for (const id of PM.RISKY) {
-      desired[id] = (Number(target[id]) || 0) * base;
+      desired[id] = T[id] * base;
       const d = Math.abs(desired[id] - cur.v[id]);
       traded += d; cost += d * A[id].cost; risky += desired[id];
     }
@@ -384,7 +387,7 @@
 
   // statistiques de risque des douze derniers mois (rendements quotidiens) : volatilité, corrélations, part du risque
   PM.risk = function (g, st) {
-    const i1 = st.idx, lo = Math.max(1, i1 - 252), n = i1 - lo + 1;
+    const i1 = st.idx, lo = Math.max(2, i1 - 252), n = i1 - lo + 1;   // lo - 1 >= 1 : la première cote de XIU_TO est à l'indice 1
     if (n < 40) return null;
     const ids = PM.RISKY, r = {}, mu = {}, vol = {};
     for (const id of ids) {
