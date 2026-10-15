@@ -1191,5 +1191,6 @@ await import('./test-camp.mjs');   // campagne
 await import('./test-review.mjs');   // révision espacée
 await import('./test-league.mjs');   // ligue hebdomadaire
 await import('./test-chron.mjs');   // chroniques historiques
+await import('./test-pwa.mjs');   // appli installable
 console.log(`\n${n} groupes de tests reussis`);
 console.log(TA.fmt.money(1234.5), '|', TA.fmt.smoney(-12.3), '|', TA.fmt.spct(0.0321), '|', TA.fmt.date(TA.dayFromISO('2008-09-15')));
