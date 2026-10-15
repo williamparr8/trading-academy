@@ -376,5 +376,62 @@
     const code = CR.dayCode(), inp = $('#fl-code'), b = document.querySelector('[data-fl-home="start"]');
     if (inp && b) { inp.value = code; b.click(); }
   });
+
+  /* ---- accueil façon jeu : tableau de bord du joueur et grille de modes ---- */
+  const TILES = [
+    { id: 'camp', hm: 'camp', ico: '🎓', t: 'Campagne', d: 'Cent niveaux et une histoire : de stagiaire à gestionnaire.', c: ['#4f46e5', '#9333ea'], big: true },
+    { id: 'trade', hm: 'trade', ico: '📈', t: 'Parties libres', d: 'De vrais marchés, actif et date cachés.', c: ['#0ea5e9', '#2563eb'] },
+    { id: 'flash', hm: 'tech', target: 'flash-card', ico: '⚡', t: 'Flash technique', d: 'Quinze graphiques, une décision chacun.', c: ['#f59e0b', '#ef4444'] },
+    { id: 'fig', hm: 'tech', target: 'pattern-card', ico: '🔍', t: 'Chasse aux figures', d: 'Reconnais la figure, vite.', c: ['#10b981', '#0891b2'] },
+    { id: 'fund', hm: 'fund', ico: '📊', t: 'Saison des résultats', d: 'Sociétés fictives, états financiers à lire.', c: ['#8b5cf6', '#d946ef'] },
+    { id: 'pm', hm: 'pm', target: 'pm-card', ico: '💼', t: 'Mandat de gestion', d: 'Un client, une politique, des contraintes.', c: ['#0d9488', '#047857'] },
+    { id: 'ips', hm: 'pm', target: 'ips-card', ico: '📝', t: 'Atelier EPP', d: 'Six dossiers de clients à analyser.', c: ['#f97316', '#be123c'] },
+    { id: 'learn', hm: 'learn', ico: '📚', t: 'Formation', d: 'Leçons, examen blanc, glossaire.', c: ['#64748b', '#1e293b'] },
+  ];
+  const AVATARS = ['🧑‍🎓', '🧑‍💼', '📈', '🧠', '🏦', '🦉', '👔', '🚀', '👑'];
+  function gameUI() {
+    const home = $('#screen-home'), stack = $('.side-stack');
+    if (!home || !stack) return;
+    const st = CR.state(), r = CR.rankOf(st.xp), now = today();
+    let camp = { stars: {} };
+    try { if (TA.CAMPLOGIC && TA.CAMPLOGIC.progress) camp = TA.CAMPLOGIC.progress(); } catch (e) { /* rien */ }
+    const stars = Object.values(camp.stars).reduce((a, b) => a + b, 0), done = Object.values(camp.stars).filter((v) => v >= 1).length;
+    const goals = st.daily.date === now ? Object.keys(st.daily.done).length : 0;
+    const streak = st.days.last === now || st.days.last === yesterday() ? st.days.streak : 0;
+    const hero = home.firstElementChild;
+    let hud = $('#hud');
+    if (!hud && hero) { hud = document.createElement('div'); hud.id = 'hud'; hud.className = 'hud'; hero.appendChild(hud); }
+    if (hud) hud.innerHTML = `<div class="hud-av" aria-hidden="true">${AVATARS[r.i] || '🧑‍🎓'}</div>
+      <div class="hud-main"><div class="hud-rank">${esc(r.name)}</div><div class="hud-sub">${nf.format(st.xp)} XP${r.next ? ' · prochain grade : ' + esc(r.next) : ' · grade maximal'}</div><div class="hud-bar"><i style="width:${Math.round(r.pct * 100)}%"></i></div></div>
+      <div class="hud-chips"><div class="hud-chip"><b>🔥 ${streak}</b>jour${streak > 1 ? 's' : ''} de suite</div><div class="hud-chip"><b>⭐ ${stars}</b>étoiles</div><div class="hud-chip"><b>🎯 ${goals}/4</b>objectifs</div></div>`;
+    // grille de modes
+    const hm = document.body.dataset.hm;
+    let grid = $('#mode-grid');
+    if (!grid) { grid = document.createElement('section'); grid.id = 'mode-grid'; stack.prepend(grid); }
+    const info = {
+      camp: `${done} / 100 niveaux · ${stars} ★`, trade: `${st.stats.game || 0} partie${(st.stats.game || 0) > 1 ? 's' : ''}`, flash: `${st.stats.flash || 0} séance${(st.stats.flash || 0) > 1 ? 's' : ''}`,
+      fig: `${st.stats.pattern || 0} séance${(st.stats.pattern || 0) > 1 ? 's' : ''}`, fund: `${st.stats.fund || 0} saison${(st.stats.fund || 0) > 1 ? 's' : ''}`, pm: `${st.stats.pm || 0} mandat${(st.stats.pm || 0) > 1 ? 's' : ''}`,
+      ips: st.badges.ips1 ? 'terminé' : 'à découvrir', learn: `${Object.keys(st.quizPass || {}).length} quiz réussis`,
+    };
+    grid.innerHTML = `<div class="mode-head"><h2>Choisis ton mode</h2><span>Chaque mode entraîne une compétence différente.</span></div><div class="mode-grid">${TILES.map((t) => `<button type="button" class="mode-tile${t.big ? ' big' : ''}${t.hm === hm && !t.target ? ' on' : ''}" style="--c1:${t.c[0]};--c2:${t.c[1]}" data-mode-tile="${t.id}" data-hm-go="${t.hm}"${t.target ? ' data-target="' + t.target + '"' : ''}><span class="ico" aria-hidden="true">${t.ico}</span><b>${esc(t.t)}</b><span>${esc(t.d)}</span><i>${t.id === 'camp' ? (done ? 'Continuer · niveau ' + Math.min(100, done + 1) : 'Commencer l’aventure') : esc(info[t.id])}</i></button>`).join('')}</div>`;
+  }
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-mode-tile]');
+    if (!t) return;
+    const id = t.dataset.modeTile, b = document.querySelector('[data-hmode="' + t.dataset.hmGo + '"]');
+    if (b) b.click();
+    if (id === 'camp') { const go = document.querySelector('#camp-card [data-cp-open]'); if (go) { go.click(); return; } }
+    gameUI();
+    setTimeout(() => {
+      const el = (t.dataset.target && document.getElementById(t.dataset.target)) || document.querySelector('.side-stack > .card:not(#career-card)');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  });
+  try {
+    const homeEl = $('#screen-home');
+    if (homeEl) new MutationObserver(() => { if (!homeEl.hidden) gameUI(); }).observe(homeEl, { attributes: true, attributeFilter: ['hidden'] });
+  } catch (e) { /* rien */ }
+  window.addEventListener('ta:xp', () => setTimeout(gameUI, 30));
   renderCard();
+  gameUI();
 })(typeof window !== 'undefined' ? window : globalThis);
