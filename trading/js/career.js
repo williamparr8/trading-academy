@@ -43,6 +43,7 @@
   CR.BADGES.push({ id: 'campAll', name: 'Gestionnaire de la Maison Boréale', desc: 'Termine le niveau 100 de la campagne.' }, { id: 'campGold', name: 'Maîtrise totale', desc: 'Obtiens trois étoiles aux 100 niveaux.' });
   CR.BADGES.push({ id: 'rev1', name: 'Mémoire en marche', desc: 'Termine une séance de révision du carnet d’erreurs.' }, { id: 'rev25', name: 'Mémoire d’acier', desc: 'Maîtrise 25 questions de ton carnet d’erreurs.' });
   CR.BADGES.push({ id: 'leaguePromo', name: 'Promu', desc: 'Monte d’une ligue hebdomadaire.' }, { id: 'leagueTop', name: 'Ligue Diamant', desc: 'Atteins la ligue Diamant.' });
+  CR.BADGES.push({ id: 'chron1', name: 'Historien des marchés', desc: 'Termine une chronique historique.' }, { id: 'chronA', name: 'Œil du chroniqueur', desc: 'Obtiens la note A à une chronique.' }, { id: 'chronAll', name: 'Mémoire des marchés', desc: 'Termine les huit chroniques historiques.' });
   const KEY = 'ta:career';
   const blank = () => ({ v: 1, xp: 0, days: { last: null, streak: 0, best: 0 }, daily: { date: null, done: {} }, badges: {}, stats: { game: 0, pm: 0, fund: 0, flash: 0, quiz: 0 }, quizPass: {}, log: [] });
   const store = {
@@ -134,6 +135,12 @@
     } else if (e.kind === 'pattern') {
       add(15 + e.right * 4, `${e.right} figures sur ${e.total}`);
       out.badges.push('pattern1'); if (e.right >= 9) out.badges.push('patternAce');
+    } else if (e.kind === 'chron') {
+      add(30, 'chronique terminée'); add(gradeBonus[e.grade] || 0, `note ${e.grade}`);
+      if (e.beat) add(15, 'meilleur que le portefeuille passif');
+      out.badges.push('chron1');
+      if (e.grade === 'A') out.badges.push('chronA');
+      if (e.doneCount >= e.total) out.badges.push('chronAll');
     } else if (e.kind === 'review') {
       add(Math.min(40, e.right * 4), `${e.right} réponse${e.right > 1 ? 's' : ''} juste${e.right > 1 ? 's' : ''} en révision`);
       if (e.total >= 5 && e.right / e.total >= 0.8) add(10, 'révision réussie');
@@ -175,7 +182,7 @@
       a.xp += bonus; a.why.push('boss de la semaine');
       if (['A', 'B'].includes(e.grade)) a.badges.push('boss');
     }
-    if ((e.kind === 'pm' || e.kind === 'fund') && !st.daily.done.manager) { st.daily.done.manager = true; a.xp += 30; a.why.push('objectif du jour : gestion'); }
+    if ((e.kind === 'pm' || e.kind === 'fund' || e.kind === 'chron') && !st.daily.done.manager) { st.daily.done.manager = true; a.xp += 30; a.why.push('objectif du jour : gestion'); }
     if ((e.kind === 'quiz' || e.kind === 'game' || e.kind === 'review') && !st.daily.done.learn) { st.daily.done.learn = true; a.xp += 15; a.why.push('objectif du jour : apprendre ou jouer'); }
     if (a.xp > 0 && st.days.streak >= 2) { const b = Math.min(20, 5 * st.days.streak); a.xp += b; a.why.push(`série de ${st.days.streak} jours`); }
     st.xp += a.xp;
@@ -396,6 +403,7 @@
     { id: 'fund', hm: 'fund', ico: '📊', t: 'Saison des résultats', d: 'Sociétés fictives, états financiers à lire.', c: ['#8b5cf6', '#d946ef'] },
     { id: 'pm', hm: 'pm', target: 'pm-card', ico: '💼', t: 'Mandat de gestion', d: 'Un client, une politique, des contraintes.', c: ['#0d9488', '#047857'] },
     { id: 'ips', hm: 'pm', target: 'ips-card', ico: '📝', t: 'Atelier EPP', d: 'Six dossiers de clients à analyser.', c: ['#f97316', '#be123c'] },
+    { id: 'chron', hm: 'pm', ico: '🕰️', t: 'Chroniques', d: 'Krach, pandémie, inflation : vis les grands moments des marchés, décision après décision.', c: ['#7c3aed', '#db2777'] },
     { id: 'rev', hm: 'learn', ico: '🧠', t: 'Révision', d: 'Tes erreurs reviennent au bon moment.', c: ['#14b8a6', '#0369a1'] },
     { id: 'learn', hm: 'learn', ico: '📚', t: 'Formation', d: 'Leçons, examen blanc, glossaire.', c: ['#64748b', '#1e293b'] },
   ];
@@ -433,7 +441,7 @@
     const info = {
       camp: `${done} / 100 niveaux · ${stars} ★`, trade: `${st.stats.game || 0} partie${(st.stats.game || 0) > 1 ? 's' : ''}`, flash: `${st.stats.flash || 0} séance${(st.stats.flash || 0) > 1 ? 's' : ''}`,
       fig: `${st.stats.pattern || 0} séance${(st.stats.pattern || 0) > 1 ? 's' : ''}`, fund: `${st.stats.fund || 0} saison${(st.stats.fund || 0) > 1 ? 's' : ''}`, pm: `${st.stats.pm || 0} mandat${(st.stats.pm || 0) > 1 ? 's' : ''}`,
-      ips: st.badges.ips1 ? 'terminé' : 'à découvrir', rev: TA.REVIEW ? (TA.REVIEW.dueCount() ? TA.REVIEW.dueCount() + ' à revoir' : 'à jour') : '—', learn: `${Object.keys(st.quizPass || {}).length} quiz réussis`,
+      ips: st.badges.ips1 ? 'terminé' : 'à découvrir', chron: TA.CHRON && TA.CHRON.doneCount ? TA.CHRON.doneCount() + ' sur ' + (TA.CHRON_DATA || []).length : '—', rev: TA.REVIEW ? (TA.REVIEW.dueCount() ? TA.REVIEW.dueCount() + ' à revoir' : 'à jour') : '—', learn: `${Object.keys(st.quizPass || {}).length} quiz réussis`,
     };
     grid.innerHTML = `<div class="mode-head"><h2>Choisis ton mode</h2><span>Chaque mode entraîne une compétence différente.</span></div><div class="mode-grid${introDone ? '' : ' intro'}">${TILES.map((t) => `<button type="button" class="mode-tile${t.big ? ' big' : ''}${t.hm === hm && !t.target ? ' on' : ''}" style="--c1:${t.c[0]};--c2:${t.c[1]}" data-mode-tile="${t.id}" data-hm-go="${t.hm}"${t.target ? ' data-target="' + t.target + '"' : ''}><span class="ico" aria-hidden="true">${t.ico}</span><b>${esc(t.t)}</b><span>${esc(t.d)}</span><i>${t.id === 'camp' ? (done ? 'Continuer · niveau ' + Math.min(100, done + 1) : 'Commencer l’aventure') : esc(info[t.id])}</i></button>`).join('')}</div>`;
     introDone = true;
@@ -443,6 +451,7 @@
     if (!t) return;
     const id = t.dataset.modeTile, b = document.querySelector('[data-hmode="' + t.dataset.hmGo + '"]');
     if (id === 'rev' && TA.REVIEW) { TA.REVIEW.open(); return; }
+    if (id === 'chron' && TA.CHRON) { TA.CHRON.open(); return; }
     if (b) b.click();
     if (id === 'camp') { const go = document.querySelector('#camp-card [data-cp-open]'); if (go) { go.click(); return; } }
     gameUI();

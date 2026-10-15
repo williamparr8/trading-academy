@@ -950,11 +950,11 @@ main.pm .mt-win,.cp-level .mt-win,.cp-play .mt-win,.cp-map .mt-win{border:1px so
 .mode-tile.big b{font-size:22px}
 .mode-tile.big::before{content:'▶';position:absolute;right:22px;top:20px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.25);font-size:16px;z-index:1}
 .mode-tile.on{outline:3px solid #fff;box-shadow:0 0 0 6px var(--c1),0 22px 44px rgba(20,24,58,.35)}
-.mode-tile:nth-last-child(-n+2){grid-column:span 2;min-height:110px}
+.mode-tile[data-mode-tile="chron"]{grid-column:span 2}
 .home h1{letter-spacing:-.02em;word-spacing:.04em}
 .home .lede,.home .facts span,.mode-tile span{letter-spacing:.005em;word-spacing:.05em}
-@media (max-width:1000px){.mode-tile:nth-last-child(-n+2){grid-column:auto}.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home .facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.mode-grid{grid-template-columns:minmax(0,1fr)}.mode-tile.big{grid-column:auto}.home>div:first-child{padding:24px 20px}.side-stack{grid-template-columns:minmax(0,1fr)}.home .facts{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1000px){.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home .facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.mode-grid{grid-template-columns:minmax(0,1fr)}.mode-tile.big,.mode-tile[data-mode-tile="chron"]{grid-column:auto}.home>div:first-child{padding:24px 20px}.side-stack{grid-template-columns:minmax(0,1fr)}.home .facts{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:960px){.cp-tiers{grid-template-columns:minmax(0,1fr)}.facts{grid-template-columns:minmax(0,1fr)}.pm-big{font-size:64px}}
 @media (max-width:560px){.home-modes{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ===================== Animations et retours ===================== */
@@ -995,6 +995,35 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
 .lg-av{font-size:19px;text-align:center}
 .lg-xp{font-variant-numeric:tabular-nums;font-weight:700}
 .lg-row.me .lg-nm{color:var(--accent)}
+body{word-spacing:.05em}
+/* ===================== Chroniques ===================== */
+.ch-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:14px}
+.ch-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:4px;text-align:left;border:0;border-radius:20px;padding:18px;min-height:160px;color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 10px 24px rgba(20,24,58,.18);transition:transform .18s,box-shadow .18s;font-family:inherit}
+.ch-card::after{content:'';position:absolute;right:-24px;bottom:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.14)}
+.ch-card:hover{transform:translateY(-4px);box-shadow:0 18px 36px rgba(20,24,58,.28)}
+.ch-card .ico{font-size:30px}
+.ch-card b{font-size:17px;margin-top:4px;letter-spacing:-.01em}
+.ch-card span{font-size:13px;opacity:.92;line-height:1.4}
+.ch-card i{margin-top:auto;font-style:normal;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.22);align-self:flex-start;position:relative;z-index:1}
+.ch-assets{list-style:none;padding:0;margin:8px 0 12px;display:grid;gap:6px}
+.ch-assets li{display:flex;gap:10px;align-items:center}
+.ch-assets i,.ch-dot,.ch-row i,.ch-legend i{display:inline-block;width:12px;height:12px;border-radius:4px;flex:none}
+.ch-dot{margin-right:8px}
+.ch-chart .ch-svg{width:100%;height:auto;display:block;background:#fff;border-radius:12px}
+.ch-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12.5px}
+.ch-legend span{display:inline-flex;align-items:center;gap:6px}
+.ch-alloc{display:flex;flex-direction:column;gap:10px}
+.ch-row{display:grid;grid-template-columns:14px minmax(130px,230px) 1fr 54px;gap:10px;align-items:center}
+.ch-row label{font-size:14px}
+.ch-row input[type=range]{width:100%;accent-color:var(--accent)}
+.ch-row b{text-align:right;font-variant-numeric:tabular-nums}
+.ch-cashbar{height:10px;border-radius:99px;background:#e3e7f3;overflow:hidden}
+.ch-cashbar u{display:block;height:100%;width:100%;background:linear-gradient(90deg,#94a3b8,#cbd5e1);border-radius:99px;transition:width .15s}
+.ch-presets{align-items:center;margin-top:12px}
+.ch-part{display:grid;grid-template-columns:minmax(120px,190px) 1fr 64px;gap:10px;align-items:center;margin:8px 0;font-size:13.5px}
+.ch-pbar{height:10px;border-radius:99px;background:#e3e7f3;overflow:hidden}
+.ch-pbar i{display:block;height:100%;background:linear-gradient(90deg,#34d399,#22d3ee);border-radius:99px}
+@media (max-width:560px){.ch-row{grid-template-columns:12px 1fr 48px}.ch-row input[type=range],.ch-cashbar{grid-column:1/-1}.ch-part{grid-template-columns:1fr 64px}.ch-pbar{grid-column:1/-1}}
 </style>
 
 <div class="wrap">
@@ -1078,6 +1107,7 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
       <section class="card" id="learn-card" aria-label="Formation" data-hm="learn"></section>
       <section class="card" id="exam-card" aria-label="Examen blanc" data-hm="learn"></section>
       <section class="card" id="review-card" aria-label="Révision" data-hm="learn"></section>
+      <section class="card" id="chron-card" aria-label="Chroniques" data-hm="pm"></section>
       <section class="card" id="gloss-card" aria-label="Glossaire" data-hm="learn"></section>
       <section class="card profile" id="profile" aria-label="Ton niveau" data-hm="trade"></section>
       <div class="card imp" data-hm="trade">
@@ -1344,6 +1374,8 @@ main:not([hidden]):not(#screen-game){animation:scr-in .28s ease-out both}
 <script src="js/glossary.js"></script>
 <script src="js/ips.js"></script>
 <script src="js/review.js"></script>
+<script src="js/chron-data.js"></script>
+<script src="js/chron.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/career.js"></script>
 <script src="js/league.js"></script>
