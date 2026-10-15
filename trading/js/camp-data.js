@@ -7,9 +7,9 @@
 
   const CAMP = (TA.CAMP = {});
   CAMP.TIERS = [
-    { id: 0, name: 'Apprenti', n: 5, pass: 0.6, hint: true, note: 'Indices disponibles, réponses numériques à choix.' },
-    { id: 1, name: 'Compagnon', n: 7, pass: 0.75, hint: false, note: 'Sans indice, réponses numériques à saisir.' },
-    { id: 2, name: 'Maître', n: 10, pass: 0.9, hint: false, note: 'Dix questions, précision exigée, 90 % requis.' },
+    { id: 0, icon: '🌱', name: 'Apprenti', n: 5, pass: 0.6, hint: true, note: 'Indices disponibles, réponses numériques à choix.' },
+    { id: 1, icon: '⚔️', name: 'Compagnon', n: 7, pass: 0.75, hint: false, note: 'Sans indice, réponses numériques à saisir.' },
+    { id: 2, icon: '👑', name: 'Maître', n: 10, pass: 0.9, hint: false, note: 'Dix questions, précision exigée, 90 % requis.' },
   ];
 
   CAMP.CHAPTERS = [

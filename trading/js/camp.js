@@ -105,7 +105,7 @@
     level() {
       const l = LV[S.n - 1], ch = CAMP.CHAPTERS[l.ch - 1], first = LV.find((x) => x.ch === l.ch).n === l.n;
       const intro = first && !P.seen[l.ch] ? `<section class="mt-win cp-story"><header class="mt-wh"><b>Chapitre ${ch.id} · ${esc(ch.title)}</b></header><div class="mt-wb pm-pad"><p class="cp-quote">${esc(ch.intro)}</p></div></section>` : '';
-      const tiers = CAMP.TIERS.map((t) => { const open = CP.tierOpen(P.stars, S.n, t.id), got = (P.stars[S.n] || 0) > t.id; return `<button type="button" class="btn ${open ? 'primary' : ''} cp-tier" data-cp-tier="${t.id}"${open ? '' : ' disabled'}><b>${t.name}</b><span>${got ? '★ réussi' : open ? `${t.n} questions · ${Math.round(t.pass * 100)} %` : '🔒 réussis le palier précédent'}</span></button>`; }).join('');
+      const tiers = CAMP.TIERS.map((t) => { const open = CP.tierOpen(P.stars, S.n, t.id), got = (P.stars[S.n] || 0) > t.id; return `<button type="button" class="btn ${open ? 'primary' : ''} cp-tier" data-cp-tier="${t.id}"${open ? '' : ' disabled'}><b>${t.icon} ${t.name}</b><span>${got ? '★ réussi' : open ? `${t.n} questions · ${Math.round(t.pass * 100)} %` : '🔒 réussis le palier précédent'}</span></button>`; }).join('');
       return `<div class="mt-bar pm-bar"><b class="pm-title">Niveau ${l.n} · ${esc(l.title)}</b><span class="sp"></span><span class="fd-top">${stars(l.n)}</span><span class="mt-sep"></span><button class="btn ghost" type="button" data-cp="map">Carte</button></div>
         <div class="cp-level">${intro}
           <section class="mt-win"><header class="mt-wh"><b>${l.boss ? 'Épreuve du chapitre' : 'Mini-leçon'}</b></header><div class="mt-wb pm-pad"><p class="cp-quote">${esc(l.beat)}</p><p>${esc(l.concept)}</p></div></section>

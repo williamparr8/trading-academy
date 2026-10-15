@@ -280,7 +280,7 @@
   (function homeModes() {
     const card = $('#career-card');
     if (!card || $('#home-modes')) return;
-    const modes = [['camp', 'Campagne'], ['trade', 'Trading'], ['tech', 'Technique'], ['fund', 'Analyste'], ['pm', 'Gestionnaire'], ['learn', 'Formation']];
+    const modes = [['camp', '🎓 Campagne'], ['trade', '📈 Trading'], ['tech', '🔬 Technique'], ['fund', '📊 Analyste'], ['pm', '💼 Gestionnaire'], ['learn', '📚 Formation']];
     let cur = 'camp';
     try { const v = localStorage.getItem('ta:homemode'); if (modes.some((m) => m[0] === v)) cur = v; } catch (e) { /* rien */ }
     const seg = document.createElement('div');
